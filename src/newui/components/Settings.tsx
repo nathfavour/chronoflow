@@ -30,7 +30,20 @@ export function Settings() {
     }
   ];
 
-  const settingSections = [
+  type SettingItem = {
+  title: string;
+  description: string;
+  component: React.ReactNode;
+  available: boolean;
+  requiresAuth?: boolean;
+};
+
+type SettingSection = {
+  title: string;
+  items: SettingItem[];
+};
+
+const settingSections: SettingSection[] = [
     {
       title: "Appearance",
       items: [
