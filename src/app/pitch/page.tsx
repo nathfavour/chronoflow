@@ -72,15 +72,17 @@ export default function PitchPage() {
   const touchStartX = useRef<number | null>(null);
 
   const paginate = (newDirection: number) => {
-    setPage([(page + newDirection + slideCount) % slideCount, newDirection]);
+    setPage((prev) => [(prev[0] + newDirection + slideCount) % slideCount, newDirection]);
   };
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!pauseRef.current) paginate(1);
+      if (!pauseRef.current) {
+        paginate(1);
+      }
     }, 6000);
     return () => clearInterval(interval);
-  }, [page, slideCount]);
+  }, []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -89,7 +91,7 @@ export default function PitchPage() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [page]);
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
