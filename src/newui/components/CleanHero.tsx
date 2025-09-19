@@ -86,23 +86,35 @@ export function CleanHero({ onLaunchApp }: CleanHeroProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <Button 
-              size="lg" 
-              className="text-lg px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              onClick={onLaunchApp}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              Start Free Trial
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
+              <Button 
+                size="lg" 
+                className="text-lg px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl shadow-blue-500/25 hover:shadow-2xl hover:shadow-blue-500/40 transition-all duration-300"
+                onClick={onLaunchApp}
+              >
+                Start Free Trial
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </motion.div>
             
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="text-lg px-8 py-4"
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <Play className="mr-2 w-5 h-5" />
-              Connect Somnia Wallet
-            </Button>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="text-lg px-8 py-4 border-2 hover:bg-background/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Play className="mr-2 w-5 h-5" />
+                Connect Somnia Wallet
+              </Button>
+            </motion.div>
           </motion.div>
 
           {/* Somnia Network Badge */}
@@ -193,7 +205,7 @@ export function CleanHero({ onLaunchApp }: CleanHeroProps) {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: index * 0.1 }}
                   viewport={{ once: true }}
-                  className="p-8 rounded-2xl bg-card border border-border hover:border-primary/20 transition-colors duration-300"
+                  className="p-8 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/30 hover:bg-card/90 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
                     <Icon className="w-6 h-6 text-primary" />

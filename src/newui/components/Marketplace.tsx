@@ -4,8 +4,9 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Search, Filter, TrendingUp, Eye, ShoppingCart, Heart } from "lucide-react";
+import { Search, Filter, TrendingUp, Eye, ShoppingCart, Heart, DollarSign, Clock, Users, Activity } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { motion } from "framer-motion";
 
 // Mock marketplace data
 const mockNFTs = [
@@ -128,30 +129,42 @@ export function Marketplace() {
     });
 
   return (
-    <div className="min-h-screen bg-background pt-8 pb-24 lg:pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pt-8 pb-24 lg:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Stream NFT Marketplace</h1>
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+            Stream NFT Marketplace
+          </h1>
           <p className="text-muted-foreground">
             Discover and trade ChronoFlow stream NFTs - liquid representations of cash flows
           </p>
-        </div>
+        </motion.div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <motion.div 
+          className="flex flex-col md:flex-row gap-4 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search streams..."
-              className="pl-10"
+              className="pl-10 bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all duration-300 focus:ring-2 focus:ring-primary/20"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full md:w-48">
+            <SelectTrigger className="w-full md:w-48 bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all duration-300">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -166,7 +179,7 @@ export function Marketplace() {
           </Select>
 
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full md:w-48">
+            <SelectTrigger className="w-full md:w-48 bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/30 transition-all duration-300">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -176,114 +189,205 @@ export function Marketplace() {
               <SelectItem value="duration">Duration</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{mockNFTs.length}</div>
-              <p className="text-sm text-muted-foreground">Active Listings</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">${(mockNFTs.reduce((acc, nft) => acc + nft.currentPrice, 0)).toFixed(1)}K</div>
-              <p className="text-sm text-muted-foreground">Total Volume</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{(mockNFTs.reduce((acc, nft) => acc + parseFloat(nft.yield), 0) / mockNFTs.length).toFixed(1)}%</div>
-              <p className="text-sm text-muted-foreground">Avg Yield</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">24</div>
-              <p className="text-sm text-muted-foreground">Sales (24h)</p>
-            </CardContent>
-          </Card>
-        </div>
+        <motion.div 
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          {[
+            {
+              title: "Active Listings",
+              value: mockNFTs.length.toString(),
+              icon: Activity,
+              color: "text-blue-500"
+            },
+            {
+              title: "Total Volume",
+              value: `$${(mockNFTs.reduce((acc, nft) => acc + nft.currentPrice, 0)).toFixed(1)}K`,
+              icon: DollarSign,
+              color: "text-green-500"
+            },
+            {
+              title: "Avg Yield",
+              value: `${(mockNFTs.reduce((acc, nft) => acc + parseFloat(nft.yield), 0) / mockNFTs.length).toFixed(1)}%`,
+              icon: TrendingUp,
+              color: "text-purple-500"
+            },
+            {
+              title: "Sales (24h)",
+              value: "24",
+              icon: Clock,
+              color: "text-orange-500"
+            }
+          ].map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 + index * 0.1 }}
+                whileHover={{ y: -3, scale: 1.02 }}
+                className="group cursor-pointer"
+              >
+                <Card className="relative overflow-hidden bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/30 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-2xl font-bold group-hover:text-primary transition-colors duration-300">
+                        {stat.value}
+                      </div>
+                      <Icon className={`h-5 w-5 ${stat.color} group-hover:scale-110 transition-transform duration-300`} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{stat.title}</p>
+                  </CardContent>
+                  {/* Subtle gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Card>
+              </motion.div>
+            );
+          })}
+        </motion.div>
 
         {/* NFT Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredNFTs.map((nft) => (
-            <Card key={nft.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300 border border-border/50 hover:border-border">
-              <div className="relative">
-                <ImageWithFallback
-                  src={nft.image}
-                  alt={nft.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute top-3 right-3 flex space-x-2">
-                  <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-background/80 backdrop-blur">
-                    <Heart className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-background/80 backdrop-blur">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="absolute top-3 left-3">
-                  <Badge className="bg-green-500/20 text-green-500 border-green-500/20">
-                    {nft.yield} APY
-                  </Badge>
-                </div>
-              </div>
-
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{nft.title}</CardTitle>
-                <p className="text-sm text-muted-foreground">{nft.description}</p>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Current Price</p>
-                    <p className="font-semibold">{nft.currentPrice} ETH</p>
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
+          {filteredNFTs.map((nft, index) => (
+            <motion.div
+              key={nft.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.7 + index * 0.1 }}
+              whileHover={{ y: -8, scale: 1.02 }}
+              className="group"
+            >
+              <Card className="relative overflow-hidden hover:shadow-xl transition-all duration-300 border border-border/50 hover:border-primary/30 bg-card/80 backdrop-blur-sm">
+                {/* Subtle gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                <div className="relative z-10">
+                  <div className="relative">
+                    <ImageWithFallback
+                      src={nft.image}
+                      alt={nft.title}
+                      className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute top-3 right-3 flex space-x-2">
+                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                        <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-background/80 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                          <Heart className="h-4 w-4" />
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                        <Button size="sm" variant="secondary" className="h-8 w-8 p-0 bg-background/80 backdrop-blur shadow-lg hover:shadow-xl transition-all duration-300">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </motion.div>
+                    </div>
+                    <div className="absolute top-3 left-3">
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ type: "spring", stiffness: 400 }}
+                      >
+                        <Badge className="bg-green-500/20 text-green-500 border-green-500/20 shadow-lg backdrop-blur-sm">
+                          {nft.yield} APY
+                        </Badge>
+                      </motion.div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Remaining Value</p>
-                    <p className="font-semibold">${nft.remainingValue.toLocaleString()}</p>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Duration</span>
-                    <span>{nft.duration}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Seller</span>
-                    <span className="font-mono">{nft.seller}</span>
-                  </div>
-                </div>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg group-hover:text-primary transition-colors duration-300">
+                      {nft.title}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">{nft.description}</p>
+                  </CardHeader>
 
-                <div className="flex space-x-2 pt-2">
-                  <Button className="flex-1" size="sm">
-                    <ShoppingCart className="w-4 h-4 mr-1" />
-                    Buy Now
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                    Make Offer
-                  </Button>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Current Price</p>
+                        <p className="font-semibold">{nft.currentPrice} ETH</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Remaining Value</p>
+                        <p className="font-semibold">${nft.remainingValue.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Duration</span>
+                        <span>{nft.duration}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Seller</span>
+                        <span className="font-mono">{nft.seller}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2 pt-2">
+                      <motion.div 
+                        className="flex-1"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Button className="w-full shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-r from-primary to-primary/80" size="sm">
+                          <ShoppingCart className="w-4 h-4 mr-1" />
+                          Buy Now
+                        </Button>
+                      </motion.div>
+                      <motion.div 
+                        className="flex-1"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Button variant="outline" size="sm" className="w-full shadow-lg hover:shadow-xl transition-all duration-300 border-border/50 hover:border-primary/30">
+                          <TrendingUp className="w-4 h-4 mr-1" />
+                          Make Offer
+                        </Button>
+                      </motion.div>
+                    </div>
+                  </CardContent>
                 </div>
-              </CardContent>
-            </Card>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {filteredNFTs.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+          <motion.div 
+            className="text-center py-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+          >
+            <motion.div 
+              className="w-16 h-16 bg-gradient-to-br from-muted to-primary/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"
+              animate={{ 
+                rotateY: [0, 360],
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ 
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
               <Search className="w-8 h-8 text-muted-foreground" />
-            </div>
+            </motion.div>
             <h3 className="text-lg font-semibold mb-2">No streams found</h3>
             <p className="text-muted-foreground">
               Try adjusting your search or filter criteria
             </p>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

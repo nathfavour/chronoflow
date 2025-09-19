@@ -3,6 +3,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { Calendar, DollarSign, User, Clock, ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface StreamCardProps {
   id: string;
@@ -48,18 +49,32 @@ export function StreamCard({
   };
 
   return (
-    <Card className="relative overflow-hidden border border-border/50 hover:border-border transition-all duration-300 hover:shadow-lg">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg mb-1">{title}</CardTitle>
-            <p className="text-sm text-muted-foreground">{description}</p>
+    <motion.div
+      whileHover={{ y: -4, scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+    >
+      <Card className="relative overflow-hidden border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl shadow-lg bg-card/80 backdrop-blur-sm group">
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        
+        <CardHeader className="pb-3 relative z-10">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <CardTitle className="text-lg mb-1 group-hover:text-primary transition-colors duration-300">
+                {title}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              <Badge className={`ml-2 shadow-sm ${getStatusColor(status)}`}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </Badge>
+            </motion.div>
           </div>
-          <Badge className={`ml-2 ${getStatusColor(status)}`}>
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </Badge>
-        </div>
-      </CardHeader>
+        </CardHeader>
 
       <CardContent className="space-y-4">
         {/* NFT Preview */}
@@ -141,5 +156,6 @@ export function StreamCard({
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }
