@@ -20,6 +20,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (path.startsWith("/settings")) return "settings";
     if (path.startsWith("/analytics")) return "analytics";
     if (path.startsWith("/notifications")) return "notifications";
+    if (path.startsWith("/onboarding")) return "onboarding";
     return "dashboard";
   };
 
