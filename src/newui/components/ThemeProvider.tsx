@@ -29,22 +29,29 @@ export function ThemeProvider({
   storageKey = "chronoflow-ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  );
+  // Avoid accessing localStorage during SSR — initialize with default and hydrate on mount
+  const [theme, setThemeState] = useState<Theme>(defaultTheme);
 
   const [actualTheme, setActualTheme] = useState<"dark" | "light">("light");
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem(storageKey) as Theme | null;
+      if (stored) setThemeState(stored);
+    } catch (e) {
+      // ignore
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
     const root = window.document.documentElement;
 
-    const getSystemTheme = () => {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    };
+    const getSystemTheme = () =>
+      window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 
     const applyTheme = (newTheme: Theme) => {
       let resolvedTheme: "dark" | "light";
-      
+
       if (newTheme === "system") {
         resolvedTheme = getSystemTheme();
       } else {
@@ -58,21 +65,30 @@ export function ThemeProvider({
 
     applyTheme(theme);
 
-    // Listen for system theme changes when using "system"
     if (theme === "system") {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       const handleChange = () => applyTheme("system");
+      if (typeof mediaQuery.addEventListener === "function") {
+        mediaQuery.addEventListener("change", handleChange);
+        return () => mediaQuery.removeEventListener("change", handleChange);
+      }
       mediaQuery.addListener(handleChange);
       return () => mediaQuery.removeListener(handleChange);
     }
   }, [theme]);
 
+  const setTheme = (t: Theme) => {
+    try {
+      localStorage.setItem(storageKey, t);
+    } catch (e) {
+      // ignore
+    }
+    setThemeState(t);
+  };
+
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
-    },
+    setTheme,
     actualTheme,
   };
 

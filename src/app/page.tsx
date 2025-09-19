@@ -1,6 +1,6 @@
 import Navbar from "@/newui/Navbar";
 import Hero from "@/newui/Hero";
-import Dashboard from "@/components/dashboard/dashboard";
+import { Dashboard } from "@/newui/components/Dashboard";
 
 export default function Home() {
   return (

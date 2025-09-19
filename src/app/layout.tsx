@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/newui/components/ui/sonner";
+import { ThemeProvider } from "@/newui/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "ChronoFlow",
