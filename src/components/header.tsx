@@ -1,20 +1,74 @@
-import { Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import Logo from '@/components/icons/logo';
+"use client";
+
+import { useState } from "react";
+import { Wallet, Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Logo from "@/components/icons/logo";
 
 export default function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-border/20 bg-background/80 px-4 backdrop-blur-sm md:px-6">
-      <nav className="flex w-full items-center justify-between">
-        <a href="#" className="flex items-center gap-2">
-          <Logo className="h-6 w-6 text-accent" />
-          <span className="text-lg font-bold text-foreground">ChronoFlow</span>
-        </a>
-        <Button>
-          <Wallet className="mr-2 h-4 w-4" />
-          Connect Wallet
-        </Button>
-      </nav>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">CF</span>
+            </div>
+            <span className="text-xl font-bold">ChronoFlow</span>
+          </div>
+
+          <div className="hidden md:flex items-center space-x-8">
+            <a href="#" className="text-foreground hover:text-primary transition-colors">
+              Dashboard
+            </a>
+            <a href="#" className="text-foreground hover:text-primary transition-colors">
+              Create Stream
+            </a>
+            <a href="#" className="text-foreground hover:text-primary transition-colors">
+              Marketplace
+            </a>
+            <a href="#" className="text-foreground hover:text-primary transition-colors">
+              Analytics
+            </a>
+          </div>
+
+          <div className="hidden md:flex">
+            <Button className="flex items-center space-x-2">
+              <Wallet size={16} />
+              <span>Connect Wallet</span>
+            </Button>
+          </div>
+
+          <button className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+
+        {isMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-background border-b border-border">
+            <div className="flex flex-col space-y-4 p-4">
+              <a href="#" className="text-foreground hover:text-primary transition-colors">
+                Dashboard
+              </a>
+              <a href="#" className="text-foreground hover:text-primary transition-colors">
+                Create Stream
+              </a>
+              <a href="#" className="text-foreground hover:text-primary transition-colors">
+                Marketplace
+              </a>
+              <a href="#" className="text-foreground hover:text-primary transition-colors">
+                Analytics
+              </a>
+              <Button className="flex items-center justify-center space-x-2 w-full">
+                <Wallet size={16} />
+                <span>Connect Wallet</span>
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </header>
   );
 }
