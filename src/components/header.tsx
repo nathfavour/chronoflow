@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Wallet, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/icons/logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,7 +35,8 @@ export default function Header() {
             </a>
           </div>
 
-          <div className="hidden md:flex">
+          <div className="hidden md:flex items-center space-x-2">
+            <ThemeToggle />
             <Button className="flex items-center space-x-2">
               <Wallet size={16} />
               <span>Connect Wallet</span>
@@ -61,6 +63,9 @@ export default function Header() {
               <a href="#" className="text-foreground hover:text-primary transition-colors">
                 Analytics
               </a>
+              <div className="flex items-center justify-center">
+                <ThemeToggle />
+              </div>
               <Button className="flex items-center justify-center space-x-2 w-full">
                 <Wallet size={16} />
                 <span>Connect Wallet</span>
