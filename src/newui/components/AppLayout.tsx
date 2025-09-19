@@ -42,16 +42,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         onBack={handleBack}
       />
 
-      <div className="flex flex-1">
-        <AppNavigation 
-          currentPage={currentPage as any} 
-          onPageChange={handlePageChange} 
-        />
+      <AppNavigation 
+        currentPage={currentPage as any} 
+        onPageChange={handlePageChange} 
+      />
 
-        <main className="flex-1">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1 lg:pl-72">
+        {children}
+      </main>
     </div>
   );
 }
