@@ -104,7 +104,7 @@ export default function PitchPage() {
       }
     }, 6000);
     return () => clearInterval(interval);
-  }, [page]); // Add page to dependency array to reset interval on manual navigation
+  }, []); 
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -113,7 +113,7 @@ export default function PitchPage() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [paginate]);
+  }, []);
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
