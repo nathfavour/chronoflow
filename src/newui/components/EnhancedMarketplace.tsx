@@ -34,6 +34,7 @@ import {
 import { useWeb3 } from "@/web3/context";
 import { ConnectButton } from "./ConnectButton";
 import { toast } from "sonner";
+import { ConnectButton } from "./ConnectButton";
 
 // Enhanced mock marketplace data with more details
 const mockNFTs = [
@@ -177,7 +178,7 @@ export function EnhancedMarketplace() {
   const [tokenIdInput, setTokenIdInput] = useState("");
   const [priceEthInput, setPriceEthInput] = useState("");
 
-  const { address, connect, disconnect, listNFT, buyNFT, tx } = useWeb3();
+  const { address, listNFT, buyNFT, tx } = useWeb3();
 
   const filteredNFTs = mockNFTs
     .filter(nft => 
@@ -267,19 +268,12 @@ export function EnhancedMarketplace() {
                 Discover and trade ChronoFlow stream NFTs - liquid representations of cash flows
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
-                <Activity className="w-3 h-3 mr-1" /> Live on Somnia
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => (address ? disconnect() : connect())}
-                disabled={tx.pending}
-              >
-                {address ? `${address.slice(0,6)}...${address.slice(-4)}` : 'Connect Wallet'}
-              </Button>
-            </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
+                  <Activity className="w-3 h-3 mr-1" /> Live on Somnia
+                </Badge>
+                <ConnectButton size="sm" />
+              </div>
           </div>
         </motion.div>
 
