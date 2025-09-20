@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -27,6 +28,7 @@ import {
 import { Alert, AlertDescription } from "./ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWeb3 } from "@/web3/context";
+import { ConnectButton } from "./ConnectButton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { toast } from "sonner";
 
@@ -109,7 +111,7 @@ export function EnhancedCreateStream() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [estimatedGasCost, setEstimatedGasCost] = useState("0.0024");
-  const { address, connect, disconnect, createStream, getNextStreamId, tx } = useWeb3();
+  const { address, createStream, getNextStreamId, tx } = useWeb3();
   const [nextStreamId, setNextStreamId] = useState<bigint | null>(null);
 
   // Fetch next stream id once wallet connected (preview)
@@ -295,19 +297,13 @@ export function EnhancedCreateStream() {
                 {steps[currentStep].title} • Step {currentStep + 1} of {steps.length}
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
-                Somnia Network
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => (address ? disconnect() : connect())}
-                disabled={tx.pending || isSubmitting}
-              >
-                {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connect Wallet'}
-              </Button>
-            </div>
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
+                  Somnia Network
+                </Badge>
+                {/* Unified Connect Button */}
+                <ConnectButton size="sm" />
+              </div>
           </div>
 
           {/* Progress Bar */}
