@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Zap, Layers, TrendingUp, Cpu, LockOpen, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/newui/components/ui/button";
 
 type Slide = {
   title: string;
@@ -103,7 +104,7 @@ export default function PitchPage() {
       }
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [page]); // Add page to dependency array to reset interval on manual navigation
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -112,7 +113,7 @@ export default function PitchPage() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [paginate]);
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -241,25 +242,27 @@ export default function PitchPage() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               aria-label="Previous"
               onClick={() => paginate(-1)}
-              className="p-2 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="bg-background/50 hover:bg-background/80"
             >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <button
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
               aria-label="Next"
               onClick={() => paginate(1)}
-              className="p-2 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="bg-background/50 hover:bg-background/80"
             >
-              <ArrowRight className="w-4 h-4" />
-            </button>
+              <ArrowRight className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </div>
     </main>
   );
 }
-
-    

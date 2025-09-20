@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Progress } from "./ui/progress";
 import { 
@@ -15,16 +14,9 @@ import {
   ShoppingCart, 
   Heart,
   Star,
-  Clock,
-  DollarSign,
-  Zap,
   ArrowUpDown,
-  MoreHorizontal,
-  Share,
-  Flag,
   Users,
   Activity,
-  Calendar,
   Target,
   Layers
 } from "lucide-react";
@@ -38,16 +30,15 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar
 } from "recharts";
+import { useWeb3 } from "@/web3/context";
+import { toast } from "sonner";
 
 // Enhanced mock marketplace data with more details
 const mockNFTs = [
   {
     id: "nft_001",
+    tokenId: 1,
     title: "Senior Dev Salary Stream",
     description: "6-month salary stream for senior developer position at TechCorp",
     currentPrice: 45.5,
@@ -82,6 +73,7 @@ const mockNFTs = [
   },
   {
     id: "nft_002",
+    tokenId: 2,
     title: "Token Vesting Plan",
     description: "Founder token unlock schedule with performance milestones",
     currentPrice: 125.0,
@@ -116,6 +108,7 @@ const mockNFTs = [
   },
   {
     id: "nft_003",
+    tokenId: 3,
     title: "Marketing Retainer",
     description: "Monthly marketing consultant payments for Q2 campaign",
     currentPrice: 8.75,
@@ -158,6 +151,20 @@ const categories = [
   { id: "freelance", name: "Freelance", count: mockNFTs.filter(n => n.category === "freelance").length }
 ];
 
+function ethToWei(amount: string): bigint {
+  const sanitized = amount.trim();
+  if (!/^\d*(\.\d*)?$/.test(sanitized)) throw new Error("Invalid ETH amount");
+  const [wholeRaw, fracRaw = ""] = sanitized.split(".");
+  const whole = wholeRaw === "" ? "0" : wholeRaw;
+  const fracPadded = (fracRaw + "0".repeat(18)).slice(0, 18); // 18 decimals
+  return BigInt(whole) * 10n ** 18n + BigInt(fracPadded || "0");
+}
+
+function shorten(hash?: string) {
+  if (!hash) return "";
+  return `${hash.slice(0, 6)}...${hash.slice(-4)}`;
+}
+
 export function EnhancedMarketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -166,6 +173,10 @@ export function EnhancedMarketplace() {
   const [selectedNFT, setSelectedNFT] = useState<typeof mockNFTs[0] | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 200]);
+  const [tokenIdInput, setTokenIdInput] = useState("");
+  const [priceEthInput, setPriceEthInput] = useState("");
+
+  const { address, connect, disconnect, listNFT, buyNFT, tx } = useWeb3();
 
   const filteredNFTs = mockNFTs
     .filter(nft => 
@@ -206,6 +217,38 @@ export function EnhancedMarketplace() {
     activeTrades: 156
   };
 
+  async function handleList() {
+    if (!address) { toast.error("Connect wallet first"); return; }
+    if (!tokenIdInput) { toast.error("Token ID required"); return; }
+    if (!priceEthInput) { toast.error("Price (ETH) required"); return; }
+    let tokenId: bigint;
+    try { tokenId = BigInt(tokenIdInput); } catch { toast.error("Invalid token ID"); return; }
+    let priceWei: bigint;
+    try { priceWei = ethToWei(priceEthInput); } catch (e: any) { toast.error(e.message); return; }
+    try {
+      await toast.promise(
+        listNFT(tokenId, priceWei),
+        { loading: "Listing NFT...", success: () => `Listed #${tokenId.toString()} at ${priceEthInput} ETH`, error: e => e?.message || "Listing failed" }
+      );
+    } catch (e) { /* already surfaced */ }
+  }
+
+  async function handleBuy() {
+    if (!address) { toast.error("Connect wallet first"); return; }
+    if (!tokenIdInput) { toast.error("Token ID required"); return; }
+    if (!priceEthInput) { toast.error("Value (ETH) required"); return; }
+    let tokenId: bigint;
+    try { tokenId = BigInt(tokenIdInput); } catch { toast.error("Invalid token ID"); return; }
+    let valueWei: bigint;
+    try { valueWei = ethToWei(priceEthInput); } catch (e: any) { toast.error(e.message); return; }
+    try {
+      await toast.promise(
+        buyNFT(tokenId, valueWei),
+        { loading: "Buying NFT...", success: () => `Purchased token #${tokenId.toString()}`, error: e => e?.message || "Purchase failed" }
+      );
+    } catch (e) { /* already surfaced */ }
+  }
+
   return (
     <div className="min-h-screen bg-background pt-8 pb-24 lg:pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -223,11 +266,67 @@ export function EnhancedMarketplace() {
                 Discover and trade ChronoFlow stream NFTs - liquid representations of cash flows
               </p>
             </div>
-            <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
-              <Activity className="w-3 h-3 mr-1" />
-              Live on Somnia
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
+                <Activity className="w-3 h-3 mr-1" /> Live on Somnia
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => (address ? disconnect() : connect())}
+                disabled={tx.pending}
+              >
+                {address ? `${address.slice(0,6)}...${address.slice(-4)}` : 'Connect Wallet'}
+              </Button>
+            </div>
           </div>
+        </motion.div>
+
+        {/* On-chain Actions Prototype */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.05 }}
+          className="mb-8"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>On-chain Actions (Prototype)</span>
+                {tx.hash && (
+                  <span className="text-xs font-mono text-muted-foreground">{shorten(tx.hash)}</span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-5 gap-4 items-end">
+              <div className="md:col-span-1 space-y-1">
+                <label className="text-xs font-medium">Token ID</label>
+                <Input
+                  placeholder="e.g. 12"
+                  value={tokenIdInput}
+                  onChange={e => setTokenIdInput(e.target.value)}
+                  disabled={tx.pending}
+                />
+              </div>
+              <div className="md:col-span-1 space-y-1">
+                <label className="text-xs font-medium">Price / Value (ETH)</label>
+                <Input
+                  placeholder="e.g. 1.5"
+                  value={priceEthInput}
+                  onChange={e => setPriceEthInput(e.target.value)}
+                  disabled={tx.pending}
+                />
+              </div>
+              <div className="flex space-x-2 md:col-span-3">
+                <Button className="flex-1" onClick={handleList} disabled={tx.pending}>
+                  List NFT
+                </Button>
+                <Button className="flex-1" variant="secondary" onClick={handleBuy} disabled={tx.pending}>
+                  Buy NFT
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Market Stats */}
@@ -247,7 +346,6 @@ export function EnhancedMarketplace() {
               <p className="text-xs text-green-600">+12.5% from yesterday</p>
             </CardContent>
           </Card>
-          
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center space-x-2 mb-2">
@@ -258,7 +356,6 @@ export function EnhancedMarketplace() {
               <p className="text-xs text-blue-600">APY across all streams</p>
             </CardContent>
           </Card>
-
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center space-x-2 mb-2">
@@ -269,7 +366,6 @@ export function EnhancedMarketplace() {
               <p className="text-xs text-purple-600">Tradeable streams</p>
             </CardContent>
           </Card>
-
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center space-x-2 mb-2">
@@ -373,7 +469,7 @@ export function EnhancedMarketplace() {
           </motion.div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3">
+            <div className="lg:col-span-3">
             {/* Controls */}
             <motion.div 
               className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6"
@@ -394,12 +490,10 @@ export function EnhancedMarketplace() {
                     <SelectItem value="duration">Duration</SelectItem>
                   </SelectContent>
                 </Select>
-                
                 <div className="text-sm text-muted-foreground">
                   {filteredNFTs.length} results
                 </div>
               </div>
-
               <div className="flex items-center space-x-2">
                 <Button
                   variant={viewMode === "grid" ? "default" : "outline"}
@@ -511,7 +605,6 @@ export function EnhancedMarketplace() {
                                           </Badge>
                                         </div>
                                       </div>
-                                      
                                       <div className="grid grid-cols-2 gap-4">
                                         <div>
                                           <p className="text-sm text-muted-foreground">Current Price</p>
@@ -530,7 +623,6 @@ export function EnhancedMarketplace() {
                                           <p className="font-semibold">{selectedNFT.watchers}</p>
                                         </div>
                                       </div>
-
                                       <div>
                                         <h4 className="font-medium mb-2">Stream Progress</h4>
                                         <Progress 
@@ -542,11 +634,10 @@ export function EnhancedMarketplace() {
                                           <span>Remaining: ${selectedNFT.remainingValue.toLocaleString()}</span>
                                         </div>
                                       </div>
-
                                       <div className="flex space-x-2">
-                                        <Button className="flex-1">
+                                        <Button className="flex-1" onClick={() => { setTokenIdInput(String(selectedNFT.tokenId)); toast.info("Token ID loaded below – use Buy section"); }}>
                                           <ShoppingCart className="w-4 h-4 mr-2" />
-                                          Buy Now
+                                          Load To Buy
                                         </Button>
                                         <Button variant="outline" className="flex-1">
                                           Make Offer
@@ -570,12 +661,10 @@ export function EnhancedMarketplace() {
                             )}
                           </div>
                         </div>
-
                         <CardHeader className="pb-3">
                           <CardTitle className="text-lg">{nft.title}</CardTitle>
                           <p className="text-sm text-muted-foreground">{nft.description}</p>
                         </CardHeader>
-
                         <CardContent className="space-y-4">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
@@ -587,7 +676,6 @@ export function EnhancedMarketplace() {
                               <p className="font-semibold">${nft.remainingValue.toLocaleString()}</p>
                             </div>
                           </div>
-
                           <div className="space-y-2">
                             <Progress value={(nft.streamedValue / nft.originalValue) * 100} className="h-2" />
                             <div className="flex justify-between text-xs text-muted-foreground">
@@ -595,7 +683,6 @@ export function EnhancedMarketplace() {
                               <span>{nft.duration}</span>
                             </div>
                           </div>
-
                           <div className="flex items-center justify-between text-sm">
                             <div className="flex items-center space-x-2 text-muted-foreground">
                               <Eye className="w-3 h-3" />
@@ -616,14 +703,12 @@ export function EnhancedMarketplace() {
                               {nft.riskLevel} risk
                             </Badge>
                           </div>
-
                           <div className="flex space-x-2 pt-2">
-                            <Button className="flex-1" size="sm">
+                            <Button className="flex-1" size="sm" onClick={() => { setTokenIdInput(String(nft.tokenId)); toast.info("Token ID loaded below – set ETH & Buy"); }}>
                               <ShoppingCart className="w-4 h-4 mr-1" />
-                              Buy Now
+                              Load To Buy
                             </Button>
                             <Button variant="outline" size="sm" className="flex-1">
-                              <TrendingUp className="w-4 h-4 mr-1" />
                               Make Offer
                             </Button>
                           </div>
@@ -655,7 +740,7 @@ export function EnhancedMarketplace() {
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Button size="sm">Buy Now</Button>
+                            <Button size="sm" onClick={() => { setTokenIdInput(String(nft.tokenId)); toast.info("Token ID loaded below – set ETH & Buy"); }}>Load</Button>
                             <Button variant="outline" size="sm">Offer</Button>
                           </div>
                         </div>
