@@ -32,6 +32,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useWeb3 } from "@/web3/context";
+import { ConnectButton } from "./ConnectButton";
 import { toast } from "sonner";
 
 // Enhanced mock marketplace data with more details
