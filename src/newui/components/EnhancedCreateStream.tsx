@@ -8,20 +8,14 @@ import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { 
-  Calendar, 
-  DollarSign, 
-  Clock, 
-  User, 
-  Info, 
-  CheckCircle, 
-  AlertTriangle, 
+// Removed unused Tabs imports
+import {
+  Calendar,
+  DollarSign,
+  User,
   Zap,
   Shield,
   TrendingUp,
-  Copy,
-  ExternalLink,
   ArrowRight,
   Play
 } from "lucide-react";
@@ -29,8 +23,12 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWeb3 } from "@/web3/context";
 import { ConnectButton } from "./ConnectButton";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+// Removed unused Tooltip imports
 import { toast } from "sonner";
+import { getToken } from "@/web3/tokens";
+import { addresses } from "@/web3/integrations";
+import { encodeFunctionData } from "viem";
+import { TxActivity } from "./TxActivity";
 
 interface FormData {
   title: string;
@@ -92,6 +90,24 @@ const VALIDATION_RULES = {
   streamType: { required: true }
 };
 
+// Minimal ABI subset for allowance checks (read-only)
+const ERC20_ABI: any = [
+  { "type": "function", "stateMutability": "view", "name": "allowance", "inputs": [ { "name": "owner", "type": "address" }, { "name": "spender", "type": "address" } ], "outputs": [ { "name": "", "type": "uint256" } ] }
+];
+
+function toUnitsLocal(amount: string, decimals: number): bigint {
+  const sanitized = amount.trim();
+  if (!/^[0-9]*([.][0-9]*)?$/.test(sanitized)) return 0n;
+  const [wholeRaw, fracRaw = ""] = sanitized.split(".");
+  const whole = wholeRaw === "" ? "0" : wholeRaw;
+  const fracPadded = (fracRaw + "0".repeat(decimals)).slice(0, decimals);
+  try {
+    return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(fracPadded || "0");
+  } catch {
+    return 0n;
+  }
+}
+
 export function EnhancedCreateStream() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
@@ -111,8 +127,17 @@ export function EnhancedCreateStream() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [estimatedGasCost, setEstimatedGasCost] = useState("0.0024");
-  const { address, createStream, getNextStreamId, tx } = useWeb3();
+  const { address, createStream, getNextStreamId, ensureAllowance, tx } = useWeb3();
   const [nextStreamId, setNextStreamId] = useState<bigint | null>(null);
+
+  // Allowance status tracking
+  const [allowanceStatus, setAllowanceStatus] = useState<
+    'idle' | 'checking' | 'ready' | 'insufficient' | 'unsupported' | 'error'
+  >('idle');
+  const [lastAllowance, setLastAllowance] = useState<bigint | null>(null);
+  const [requiredDeposit, setRequiredDeposit] = useState<bigint | null>(null);
+  const [allowanceRefreshNonce, setAllowanceRefreshNonce] = useState(0);
+  const [preApproving, setPreApproving] = useState(false);
 
   // Fetch next stream id once wallet connected (preview)
   useEffect(() => {
@@ -120,13 +145,63 @@ export function EnhancedCreateStream() {
       (async () => {
         try {
           const id = await getNextStreamId();
-            if (id) setNextStreamId(id);
+          if (id) setNextStreamId(id);
         } catch (e) {
           console.warn("Failed to fetch next stream id", e);
         }
       })();
     }
   }, [address, nextStreamId, getNextStreamId]);
+
+  // Debounced allowance check (read-only)
+  useEffect(() => {
+    if (!address || !formData.tokenSymbol || !formData.totalAmount) {
+      setAllowanceStatus('idle');
+      setLastAllowance(null);
+      setRequiredDeposit(null);
+      return;
+    }
+    if (parseFloat(formData.totalAmount) <= 0) {
+      setAllowanceStatus('idle');
+      return;
+    }
+    const token = getToken(formData.tokenSymbol);
+    if (!token) {
+      setAllowanceStatus('idle');
+      return;
+    }
+    if (token.symbol.toUpperCase() === 'ETH') {
+      // Native ETH streaming not yet supported (per createStream); show unsupported
+      setAllowanceStatus('unsupported');
+      setLastAllowance(null);
+      setRequiredDeposit(null);
+      return;
+    }
+
+    let cancelled = false;
+    setAllowanceStatus('checking');
+    const deposit = toUnitsLocal(formData.totalAmount, token.decimals);
+    setRequiredDeposit(deposit);
+    const handle = setTimeout(async () => {
+      try {
+        const anyWindow: any = window;
+        if (!anyWindow?.ethereum) throw new Error('No wallet');
+        const data = encodeFunctionData({ abi: ERC20_ABI, functionName: 'allowance', args: [address, addresses.ChronoFlowCore] });
+        const callParams: any = { to: token.address, data };
+        const result: string = await anyWindow.ethereum.request({ method: 'eth_call', params: [callParams, 'latest'] });
+        if (cancelled) return;
+        const allowanceBn = BigInt(result);
+        setLastAllowance(allowanceBn);
+        setAllowanceStatus(allowanceBn >= deposit ? 'ready' : 'insufficient');
+      } catch (e) {
+        if (cancelled) return;
+        console.warn('Allowance check failed', e);
+        setAllowanceStatus('error');
+      }
+    }, 500);
+
+    return () => { cancelled = true; clearTimeout(handle); };
+  }, [address, formData.tokenSymbol, formData.totalAmount, allowanceRefreshNonce]);
 
   const steps = [
     { id: "template", title: "Choose Template", icon: "📋" },
@@ -215,7 +290,7 @@ export function EnhancedCreateStream() {
       const amount = parseFloat(formData.totalAmount);
       const days = calculateDuration();
       const seconds = days * 24 * 60 * 60;
-      
+
       return {
         perSecond: seconds > 0 ? (amount / seconds).toFixed(8) : "0",
         perMinute: seconds > 0 ? (amount / (seconds / 60)).toFixed(6) : "0",
@@ -230,6 +305,10 @@ export function EnhancedCreateStream() {
     if (!validateStep(currentStep)) return;
     if (!address) {
       toast.error("Connect wallet to create stream");
+      return;
+    }
+    if (formData.tokenSymbol && formData.tokenSymbol.toUpperCase() === 'ETH') {
+      toast.error('Native ETH streaming not yet supported; select an ERC20');
       return;
     }
     if (!formData.startDate || !formData.endDate) {
@@ -262,7 +341,7 @@ export function EnhancedCreateStream() {
           success: (res) => {
             return res?.streamId ? `Stream #${res.streamId.toString()} created` : "Stream created";
           },
-            error: (e) => e?.message || "Transaction failed"
+          error: (e) => e?.message || "Transaction failed"
         }
       );
       // Refresh preview id for next potential stream
@@ -270,6 +349,8 @@ export function EnhancedCreateStream() {
         const id = await getNextStreamId();
         if (id) setNextStreamId(id);
       } catch {}
+      // Refresh allowance status after potential approval + create
+      setAllowanceRefreshNonce(n => n + 1);
     } catch (error) {
       console.error("Error creating stream:", error);
     } finally {
@@ -280,11 +361,23 @@ export function EnhancedCreateStream() {
   const progress = ((currentStep + 1) / steps.length) * 100;
   const rates = calculateRates();
 
+  const allowanceLabel = allowanceStatus === 'ready' ? 'Ready' :
+    allowanceStatus === 'insufficient' ? 'Needs Approval' :
+    allowanceStatus === 'unsupported' ? 'Unsupported' :
+    allowanceStatus === 'checking' ? 'Checking...' :
+    allowanceStatus === 'error' ? 'Error' : 'Idle';
+
+  const allowanceBadgeClass = allowanceStatus === 'ready' ? 'bg-green-500/20 text-green-600' :
+    allowanceStatus === 'insufficient' ? 'bg-yellow-500/20 text-yellow-600' :
+    allowanceStatus === 'unsupported' ? 'bg-red-500/20 text-red-600' :
+    allowanceStatus === 'error' ? 'bg-red-500/20 text-red-600' :
+    allowanceStatus === 'checking' ? 'bg-blue-500/20 text-blue-600' : 'bg-slate-500/20 text-slate-600';
+
   return (
     <div className="min-h-screen bg-background pt-24 pb-24 lg:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header with Progress */}
-        <motion.div 
+        <motion.div
           className="mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -297,13 +390,13 @@ export function EnhancedCreateStream() {
                 {steps[currentStep].title} • Step {currentStep + 1} of {steps.length}
               </p>
             </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
-                  Somnia Network
-                </Badge>
-                {/* Unified Connect Button */}
-                <ConnectButton size="sm" />
-              </div>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
+                Somnia Network
+              </Badge>
+              {/* Unified Connect Button */}
+              <ConnectButton size="sm" />
+            </div>
           </div>
 
           {/* Progress Bar */}
@@ -349,7 +442,7 @@ export function EnhancedCreateStream() {
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                           >
-                            <Card 
+                            <Card
                               className="cursor-pointer hover:shadow-md transition-all border-2 hover:border-primary/20"
                               onClick={() => applyTemplate(template)}
                             >
@@ -364,8 +457,8 @@ export function EnhancedCreateStream() {
                           </motion.div>
                         ))}
                       </div>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="w-full"
                         onClick={nextStep}
                         disabled={isSubmitting || tx.pending}
@@ -421,7 +514,7 @@ export function EnhancedCreateStream() {
 
                       <div className="space-y-2">
                         <Label htmlFor="streamType">Stream Type *</Label>
-                        <Select 
+                        <Select
                           onValueChange={(value) => handleInputChange("streamType", value)}
                           value={formData.streamType}
                         >
@@ -501,7 +594,7 @@ export function EnhancedCreateStream() {
 
                         <div className="space-y-2">
                           <Label htmlFor="token">Token *</Label>
-                          <Select 
+                          <Select
                             onValueChange={(value) => handleInputChange("tokenSymbol", value)}
                             value={formData.tokenSymbol}
                           >
@@ -534,6 +627,68 @@ export function EnhancedCreateStream() {
                           </div>
                         </AlertDescription>
                       </Alert>
+
+                      {/* Allowance Status */}
+                      <div className="p-3 rounded-md border bg-muted/30 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="text-sm pr-4">
+                            <div className="font-medium flex items-center gap-2">
+                              <Shield className="w-4 h-4" />
+                              Allowance Status
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                              {allowanceStatus === 'unsupported' && 'Native ETH streaming currently unsupported; pick an ERC20 token.'}
+                              {allowanceStatus === 'insufficient' && 'Approval needed before the stream can be created (will prompt automatically if you continue).'}
+                              {allowanceStatus === 'ready' && 'Sufficient token allowance for the ChronoFlow core contract.'}
+                              {allowanceStatus === 'checking' && 'Checking current allowance...'}
+                              {allowanceStatus === 'error' && 'Failed to read allowance. You can still try creating; approval will be requested if needed.'}
+                              {allowanceStatus === 'idle' && 'Enter amount & select token to check allowance.'}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className={allowanceBadgeClass}>
+                            {allowanceLabel}
+                          </Badge>
+                        </div>
+                        {allowanceStatus === 'insufficient' && address && (
+                          <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!requiredDeposit || isSubmitting || tx.pending || preApproving}
+                              onClick={async () => {
+                                if (!address) { toast.error('Connect wallet first'); return; }
+                                if (!formData.tokenSymbol || !requiredDeposit) return;
+                                const token = getToken(formData.tokenSymbol);
+                                if (!token) return;
+                                try {
+                                  setPreApproving(true);
+                                  await toast.promise(
+                                    ensureAllowance(formData.tokenSymbol, addresses.ChronoFlowCore, requiredDeposit),
+                                    {
+                                      loading: 'Sending approval transaction...',
+                                      success: (ok) => ok ? 'Allowance updated' : 'Allowance unchanged',
+                                      error: (e) => e?.message || 'Approval failed'
+                                    }
+                                  );
+                                  setAllowanceRefreshNonce(n => n + 1);
+                                } catch (e) {
+                                  // error toast handled above
+                                } finally {
+                                  setPreApproving(false);
+                                }
+                              }}
+                            >
+                              {preApproving ? (
+                                <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Approving...</span>
+                              ) : 'Pre-Approve Now'}
+                            </Button>
+                            <p className="text-[10px] text-muted-foreground flex-1 min-w-[180px]">
+                              Optional: grant allowance ahead of final submission to avoid dual prompts.
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -671,13 +826,17 @@ export function EnhancedCreateStream() {
                               <span className="text-muted-foreground">Per Day:</span>
                               <span>{rates.perDay} {formData.tokenSymbol}</span>
                             </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Allowance:</span>
+                              <Badge variant="secondary" className={allowanceBadgeClass}>{allowanceLabel}</Badge>
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Action Button */}
-                      <Button 
-                        className="w-full" 
+                      <Button
+                        className="w-full"
                         size="lg"
                         onClick={handleSubmit}
                         disabled={isSubmitting || tx.pending}
@@ -702,8 +861,8 @@ export function EnhancedCreateStream() {
 
             {/* Navigation */}
             <div className="flex justify-between mt-6">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 0 || isSubmitting || tx.pending}
               >
@@ -734,7 +893,7 @@ export function EnhancedCreateStream() {
                     <span className="text-muted-foreground">Duration</span>
                     <span className="font-medium">{calculateDuration()} days</span>
                   </div>
-                  
+
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Per Second</span>
                     <span className="font-medium font-mono">
@@ -767,7 +926,7 @@ export function EnhancedCreateStream() {
               <CardContent>
                 <div className="w-full h-48 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-lg flex items-center justify-center mb-4 border-2 border-dashed border-border">
                   <div className="text-center">
-                    <motion.div 
+                    <motion.div
                       className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mx-auto mb-3 flex items-center justify-center"
                       animate={{ scale: [1, 1.05, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
@@ -804,6 +963,9 @@ export function EnhancedCreateStream() {
                 </div>
               </AlertDescription>
             </Alert>
+
+            {/* Recent Tx Activity */}
+            <TxActivity />
           </div>
         </div>
       </div>

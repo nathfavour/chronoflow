@@ -18,8 +18,9 @@ import {
   Users,
   Activity,
   Target,
-  Layers
-} from "lucide-react";
+  Layers,
+  Clock
+ } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -34,6 +35,7 @@ import {
 import { useWeb3 } from "@/web3/context";
 import { ConnectButton } from "./ConnectButton";
 import { toast } from "sonner";
+import { TxActivity } from "./TxActivity";
 
 // Enhanced mock marketplace data with more details
 const mockNFTs = [
@@ -161,10 +163,7 @@ function ethToWei(amount: string): bigint {
   return BigInt(whole) * 10n ** 18n + BigInt(fracPadded || "0");
 }
 
-function shorten(hash?: string) {
-  if (!hash) return "";
-  return `${hash.slice(0, 6)}...${hash.slice(-4)}`;
-}
+
 
 export function EnhancedMarketplace() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -289,9 +288,6 @@ export function EnhancedMarketplace() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>On-chain Actions (Prototype)</span>
-                {tx.hash && (
-                  <span className="text-xs font-mono text-muted-foreground">{shorten(tx.hash)}</span>
-                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="grid md:grid-cols-6 gap-4 items-end">
@@ -364,6 +360,10 @@ export function EnhancedMarketplace() {
             </CardContent>
           </Card>
         </motion.div>
+
+        <div className="mb-8">
+          <TxActivity />
+        </div>
 
         {/* Market Stats */}
         <motion.div 
