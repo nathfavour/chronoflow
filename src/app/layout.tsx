@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/newui/components/ui/sonner";
 import { ThemeProvider } from "@/newui/components/ThemeProvider";
+import { Web3Provider } from "@/web3/context";
 
 export const metadata: Metadata = {
   title: "ChronoFlow",
@@ -25,10 +26,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <ThemeProvider>
+          <Web3Provider>
           <div className="relative flex min-h-screen w-full flex-col">
             {children}
           </div>
           <Toaster />
+          </Web3Provider>
         </ThemeProvider>
       </body>
     </html>
