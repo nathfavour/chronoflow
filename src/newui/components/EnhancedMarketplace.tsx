@@ -34,7 +34,6 @@ import {
 import { useWeb3 } from "@/web3/context";
 import { ConnectButton } from "./ConnectButton";
 import { toast } from "sonner";
-import { ConnectButton } from "./ConnectButton";
 
 // Enhanced mock marketplace data with more details
 const mockNFTs = [
@@ -178,7 +177,9 @@ export function EnhancedMarketplace() {
   const [tokenIdInput, setTokenIdInput] = useState("");
   const [priceEthInput, setPriceEthInput] = useState("");
 
-  const { address, listNFT, buyNFT, tx } = useWeb3();
+  const { address, listNFT, buyNFT, tx, fetchListing } = useWeb3();
+  const [fetchedListing, setFetchedListing] = useState<{ seller: string; price: bigint } | null | undefined>(undefined);
+  const [fetchingListing, setFetchingListing] = useState(false);
 
   const filteredNFTs = mockNFTs
     .filter(nft => 
@@ -293,7 +294,7 @@ export function EnhancedMarketplace() {
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-5 gap-4 items-end">
+            <CardContent className="grid md:grid-cols-6 gap-4 items-end">
               <div className="md:col-span-1 space-y-1">
                 <label className="text-xs font-medium">Token ID</label>
                 <Input
@@ -312,7 +313,47 @@ export function EnhancedMarketplace() {
                   disabled={tx.pending}
                 />
               </div>
-              <div className="flex space-x-2 md:col-span-3">
+              <div className="md:col-span-1 space-y-1">
+                <label className="text-xs font-medium">Listing Status</label>
+                <div className="flex items-center space-x-2">
+                  <Button type="button" variant="outline" size="sm" disabled={!tokenIdInput || fetchingListing} onClick={async () => {
+                    if (!tokenIdInput) return;
+                    let id: bigint;
+                    setFetchingListing(true);
+                    setFetchedListing(undefined);
+                    try {
+                      try { id = BigInt(tokenIdInput); } catch { toast.error("Bad token ID"); return; }
+                      const res = await fetchListing(id);
+                      setFetchedListing(res);
+                      if (res) {
+                        toast.success(`Listing: ${res.price.toString()} wei by ${res.seller.slice(0,6)}...`);
+                      } else {
+                        toast.info("No active listing");
+                      }
+                    } catch (e: any) {
+                      toast.error(e?.message || 'Fetch failed');
+                    } finally {
+                      setFetchingListing(false);
+                    }
+                  }}>
+                    {fetchingListing ? 'Checking...' : 'Check'}
+                  </Button>
+                  {fetchedListing === undefined ? (
+                    <Badge variant="secondary" className="text-xs">Idle</Badge>
+                  ) : fetchedListing === null ? (
+                    <Badge variant="destructive" className="text-xs">Not Listed</Badge>
+                  ) : (
+                    <Badge className="text-xs bg-green-500/20 text-green-600">Listed</Badge>
+                  )}
+                </div>
+                {fetchedListing && (
+                  <div className="text-[10px] text-muted-foreground leading-tight mt-1 space-y-0.5">
+                    <div>Seller: {fetchedListing.seller.slice(0, 10)}...</div>
+                    <div>Price: {(Number(fetchedListing.price) / 1e18).toFixed(4)} ETH</div>
+                  </div>
+                )}
+              </div>
+              <div className="flex space-x-2 md:col-span-2">
                 <Button className="flex-1" onClick={handleList} disabled={tx.pending}>
                   List NFT
                 </Button>
