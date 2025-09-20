@@ -252,79 +252,108 @@ export function CreateStream() {
           </motion.div>
 
           {/* Preview */}
-          <div className="space-y-6">
-            <Card>
+          <motion.div 
+            className="space-y-6"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5" />
+                  <Clock className="w-5 h-5 text-primary" />
                   <span>Stream Preview</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Duration</span>
-                    <span className="text-sm font-medium">
-                      {calculateDuration()} days
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Per Second</span>
-                    <span className="text-sm font-medium">
-                      {calculatePerSecond()} {formData.tokenSymbol || "TOKEN"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Per Hour</span>
-                    <span className="text-sm font-medium">
-                      {(parseFloat(calculatePerSecond()) * 3600).toFixed(4)} {formData.tokenSymbol || "TOKEN"}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Per Day</span>
-                    <span className="text-sm font-medium">
-                      {formData.totalAmount && calculateDuration() > 0 
-                        ? (parseFloat(formData.totalAmount) / calculateDuration()).toFixed(2)
-                        : "0.00"} {formData.tokenSymbol || "TOKEN"}
-                    </span>
-                  </div>
-                </div>
+                <motion.div 
+                  className="space-y-3"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                >
+                  {[
+                    { label: "Duration", value: `${calculateDuration()} days` },
+                    { label: "Per Second", value: `${calculatePerSecond()} ${formData.tokenSymbol || "TOKEN"}` },
+                    { label: "Per Hour", value: `${(parseFloat(calculatePerSecond()) * 3600).toFixed(4)} ${formData.tokenSymbol || "TOKEN"}` },
+                    { label: "Per Day", value: `${formData.totalAmount && calculateDuration() > 0 ? (parseFloat(formData.totalAmount) / calculateDuration()).toFixed(2) : "0.00"} ${formData.tokenSymbol || "TOKEN"}` }
+                  ].map((item, index) => (
+                    <motion.div 
+                      key={item.label}
+                      className="flex justify-between p-2 rounded-lg bg-background/50 hover:bg-background/80 transition-colors duration-300"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: 0.7 + index * 0.1 }}
+                    >
+                      <span className="text-sm text-muted-foreground">{item.label}</span>
+                      <span className="text-sm font-medium">{item.value}</span>
+                    </motion.div>
+                  ))}
+                </motion.div>
               </CardContent>
             </Card>
 
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Creating a stream will mint an NFT that represents ownership of this cash flow. 
-                The NFT can be traded, used as collateral, or fractionalized.
-              </AlertDescription>
-            </Alert>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
+            >
+              <Alert className="bg-card/80 backdrop-blur-sm border border-border/50">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription>
+                  Creating a stream will mint an NFT that represents ownership of this cash flow. 
+                  The NFT can be traded, used as collateral, or fractionalized.
+                </AlertDescription>
+              </Alert>
+            </motion.div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>NFT Preview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="w-full h-40 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-lg flex items-center justify-center mb-4">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                      <span className="text-white font-bold">CF</span>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
+              whileHover={{ scale: 1.02 }}
+              className="group"
+            >
+              <Card className="bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Sparkles className="w-5 h-5 text-primary group-hover:scale-110 transition-transform duration-300" />
+                    <span>NFT Preview</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <motion.div 
+                    className="w-full h-40 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-lg flex items-center justify-center mb-4 group-hover:from-blue-500/30 group-hover:to-purple-600/30 transition-all duration-300"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <div className="text-center">
+                      <motion.div 
+                        className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mx-auto mb-2 flex items-center justify-center shadow-lg"
+                        animate={{ 
+                          rotateY: [0, 360],
+                        }}
+                        transition={{ 
+                          duration: 8,
+                          repeat: Infinity,
+                          ease: "linear"
+                        }}
+                      >
+                        <span className="text-white font-bold">CF</span>
+                      </motion.div>
+                      <p className="text-sm font-medium">ChronoFlow Stream</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formData.title || "Untitled Stream"}
+                      </p>
                     </div>
-                    <p className="text-sm font-medium">ChronoFlow Stream</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formData.title || "Untitled Stream"}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground text-center">
-                  This NFT will be automatically minted when you create the stream
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                  </motion.div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    This NFT will be automatically minted when you create the stream
+                  </p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
     </div>

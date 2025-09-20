@@ -97,8 +97,14 @@ export function StreamAnalytics({ onBack }: StreamAnalyticsProps) {
   const projectedCompletion = new Date(Date.now() + (streamData.remainingValue / dailyRate) * 24 * 60 * 60 * 1000);
 
   return (
-    <div className="min-h-screen bg-background pt-24 pb-24 lg:pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/50 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-blue-500/5 via-transparent to-purple-500/5" />
+      <div className="absolute top-1/3 right-1/3 w-96 h-96 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/3 left-1/3 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
+      
+      <div className="relative z-10 pt-24 pb-24 lg:pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div 
           className="mb-8"
@@ -113,8 +119,8 @@ export function StreamAnalytics({ onBack }: StreamAnalyticsProps) {
                 Back
               </Button>
               <div>
-                <h1 className="text-3xl font-bold">{streamData.title}</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">{streamData.title}</h1>
+                <p className="text-muted-foreground text-lg">
                   Comprehensive analytics and performance metrics
                 </p>
               </div>
@@ -143,7 +149,7 @@ export function StreamAnalytics({ onBack }: StreamAnalyticsProps) {
           </div>
 
           {/* Status Banner */}
-          <Card className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border-green-500/20">
+          <Card className="bg-gradient-to-r from-green-500/20 via-green-500/10 to-blue-500/20 border-green-500/30 backdrop-blur-sm shadow-xl">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -176,11 +182,11 @@ export function StreamAnalytics({ onBack }: StreamAnalyticsProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <Card>
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-green-500/20 to-green-500/5 border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center space-x-2 mb-2">
-                <DollarSign className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-muted-foreground">Total Streamed</span>
+                <DollarSign className="w-5 h-5 text-green-500" />
+                <span className="text-sm text-muted-foreground font-medium">Total Streamed</span>
               </div>
               <div className="text-2xl font-bold">${streamData.streamedValue.toLocaleString()}</div>
               <p className="text-xs text-green-600 flex items-center">
@@ -190,22 +196,22 @@ export function StreamAnalytics({ onBack }: StreamAnalyticsProps) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center space-x-2 mb-2">
-                <Target className="w-4 h-4 text-blue-500" />
-                <span className="text-sm text-muted-foreground">Current Yield</span>
+                <Target className="w-5 h-5 text-blue-500" />
+                <span className="text-sm text-muted-foreground font-medium">Current Yield</span>
               </div>
               <div className="text-2xl font-bold">{streamData.yield}%</div>
               <p className="text-xs text-blue-600">APY</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-purple-500/20 to-purple-500/5 border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center space-x-2 mb-2">
-                <Users className="w-4 h-4 text-purple-500" />
-                <span className="text-sm text-muted-foreground">Watchers</span>
+                <Users className="w-5 h-5 text-purple-500" />
+                <span className="text-sm text-muted-foreground font-medium">Watchers</span>
               </div>
               <div className="text-2xl font-bold">89</div>
               <p className="text-xs text-purple-600 flex items-center">
@@ -215,11 +221,11 @@ export function StreamAnalytics({ onBack }: StreamAnalyticsProps) {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-sm bg-gradient-to-br from-orange-500/20 to-orange-500/5 border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center space-x-2 mb-2">
-                <Zap className="w-4 h-4 text-orange-500" />
-                <span className="text-sm text-muted-foreground">Performance</span>
+                <Zap className="w-5 h-5 text-orange-500" />
+                <span className="text-sm text-muted-foreground font-medium">Performance</span>
               </div>
               <div className="text-2xl font-bold">A+</div>
               <p className="text-xs text-orange-600">Risk Score</p>
@@ -234,7 +240,7 @@ export function StreamAnalytics({ onBack }: StreamAnalyticsProps) {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <Tabs defaultValue="streaming" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 backdrop-blur-sm bg-card/60 border border-border/50">
               <TabsTrigger value="streaming">Streaming</TabsTrigger>
               <TabsTrigger value="trading">Trading</TabsTrigger>
               <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
@@ -477,6 +483,7 @@ export function StreamAnalytics({ onBack }: StreamAnalyticsProps) {
             </TabsContent>
           </Tabs>
         </motion.div>
+        </div>
       </div>
     </div>
   );
