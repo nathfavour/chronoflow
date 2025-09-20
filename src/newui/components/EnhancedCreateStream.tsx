@@ -654,21 +654,35 @@ export function EnhancedCreateStream() {
                               {allowanceStatus === 'idle' && 'Enter amount & select token to check allowance.'}
                             </p>
                           </div>
-                          <Badge variant="secondary" className={allowanceBadgeClass}>
-                            {allowanceLabel}
-                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="secondary" className={allowanceBadgeClass}>
+                              {allowanceLabel}
+                            </Badge>
+                            {address && formData.tokenSymbol && formData.totalAmount && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2 text-[10px]"
+                                disabled={allowanceStatus === 'checking'}
+                                onClick={() => setAllowanceRefreshNonce(n => n + 1)}
+                              >
+                                {allowanceStatus === 'checking' ? '...' : 'Refresh'}
+                              </Button>
+                            )}
+                          </div>
                         </div>
-{address && lastAllowance !== null && requiredDeposit && formData.tokenSymbol && (
+{address && formData.tokenSymbol && formData.totalAmount && allowanceStatus !== 'idle' && allowanceStatus !== 'unsupported' && allowanceStatus !== 'checking' && lastAllowance !== null && requiredDeposit && (
   <p className="text-[10px] text-muted-foreground mt-1">
     {(() => {
-      const t = getToken(formData.tokenSymbol);
+      const t = getToken(formData.tokenSymbol!);
       if (!t) return null;
-      const currentStr = formatTokenAmount(lastAllowance, t.decimals);
-      const neededStr = formatTokenAmount(requiredDeposit, t.decimals);
+      const currentStr = formatTokenAmount(lastAllowance!, t.decimals);
+      const neededStr = formatTokenAmount(requiredDeposit!, t.decimals);
       const percent = (() => {
         if (requiredDeposit === 0n) return '0%';
-        if (lastAllowance >= requiredDeposit) return '100%';
-        const bps = (lastAllowance * 10000n) / requiredDeposit; // hundredths of a percent
+        if (lastAllowance! >= requiredDeposit!) return '100%';
+        const bps = (lastAllowance! * 10000n) / requiredDeposit!; // hundredths of a percent
         const intPart = bps / 100n;
         const fracPart = bps % 100n;
         const fracStr = fracPart === 0n ? '' : '.' + fracPart.toString().padStart(2,'0').replace(/0+$/,'');
@@ -854,9 +868,31 @@ export function EnhancedCreateStream() {
                               <span className="text-muted-foreground">Per Day:</span>
                               <span>{rates.perDay} {formData.tokenSymbol}</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-start">
                               <span className="text-muted-foreground">Allowance:</span>
-                              <Badge variant="secondary" className={allowanceBadgeClass}>{allowanceLabel}</Badge>
+                              <div className="text-right space-y-1">
+                                <Badge variant="secondary" className={allowanceBadgeClass}>{allowanceLabel}</Badge>
+                                {formData.tokenSymbol && lastAllowance !== null && requiredDeposit && allowanceStatus !== 'idle' && allowanceStatus !== 'unsupported' && allowanceStatus !== 'checking' && (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {(() => {
+                                      const t = getToken(formData.tokenSymbol!);
+                                      if (!t) return null;
+                                      const currentStr = formatTokenAmount(lastAllowance!, t.decimals);
+                                      const neededStr = formatTokenAmount(requiredDeposit!, t.decimals);
+                                      const percent = (() => {
+                                        if (requiredDeposit === 0n) return '0%';
+                                        if (lastAllowance! >= requiredDeposit!) return '100%';
+                                        const bps = (lastAllowance! * 10000n) / requiredDeposit!;
+                                        const intPart = bps / 100n;
+                                        const fracPart = bps % 100n;
+                                        const fracStr = fracPart === 0n ? '' : '.' + fracPart.toString().padStart(2,'0').replace(/0+$/,'');
+                                        return `${intPart.toString()}${fracStr}%`;
+                                      })();
+                                      return `${currentStr}/${neededStr} ${formData.tokenSymbol} (${percent})`;
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
