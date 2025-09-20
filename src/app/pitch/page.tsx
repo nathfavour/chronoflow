@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Zap, TrendingUp, Shield, Layers } from "lucide-react";
+import { ArrowLeft, ArrowRight, Zap, Layers, TrendingUp, Cpu, LockOpen, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Slide = {
@@ -14,35 +15,55 @@ type Slide = {
 
 const slides: Slide[] = [
   {
-    title: "ChronoFlow: Real-Time Yield as Tradable NFTs",
+    title: "ChronoFlow: The Future of Value is Fluid",
     paragraphs: [
-      "ChronoFlow tokenizes continuous streams of value—vesting, subscriptions, or salaries—into dynamic, tradable NFTs on the high-speed Somnia network.",
-      "These StreamNFTs visually update and accrue value every second, turning abstract future cash flows into liquid, visible assets.",
+      "Welcome to the next evolution of finance. ChronoFlow converts any income stream—salaries, vesting schedules, or subscriptions—into a dynamic, liquid NFT on the high-speed Somnia network.",
+      "Watch your earnings grow in real-time, second by second, and unlock the true time-value of your money.",
     ],
     icon: Zap,
   },
   {
-    title: "The Problem with Continuous Payments",
+    title: "The Problem: Locked-in Value",
     paragraphs: [
-      "Most blockchains make continuous payments inefficient. They rely on off-chain keepers or periodic manual claims, which are slow and costly.",
-      "ChronoFlow leverages Somnia's high throughput and sub-second finality to enable fully on-chain, real-time handling of value streams at scale.",
+      "Traditional finance is rigid. Your future earnings are trapped on a calendar, inaccessible until a specific payday.",
+      "This creates cash-flow gaps, limits financial flexibility, and prevents you from capitalizing on opportunities today.",
     ],
     icon: Layers,
   },
   {
-    title: "How It Works: Minting a StreamNFT",
+    title: "The Solution: Dynamic StreamNFTs",
     paragraphs: [
-      "A sender locks a total amount of tokens in ChronoFlow, specifying the recipient and duration.",
-      "The recipient immediately receives a StreamNFT representing their claim on the future stream. The NFT is dynamic: its metadata and visuals update in real-time to reflect total value, streamed amount, and flow rate.",
+      "ChronoFlow tokenizes your future income into a 'StreamNFT'. This NFT isn't static; it's a living asset that accrues value every second.",
+      "As time passes, the NFT's value grows, reflecting the portion of the stream you've earned. It's a transparent, on-chain representation of your financial progress.",
     ],
     icon: TrendingUp,
   },
   {
-    title: "Unlock Full Liquidity & DeFi Utility",
+    title: "How It Works: Simple & Secure",
     bullets: [
-      "Sell a StreamNFT on a marketplace to monetize future cash flows up front.",
-      "Use a StreamNFT as algorithmic collateral for loans—its remaining value is clear and composable.",
-      "Fractionalize a stream to split claims and broaden access to investors.",
+      "Create: A sender locks funds in our audited smart contract, defining the amount, duration, and recipient.",
+      "Stream: The recipient instantly gets a StreamNFT. Value flows continuously from the sender to the NFT.",
+      "Trade: The recipient can hold, trade, or use the StreamNFT as collateral in other DeFi protocols.",
+    ],
+    icon: Cpu,
+  },
+  {
+    title: "Unlock Instant Liquidity",
+    paragraphs: [
+      "Your future income is no longer illiquid. A StreamNFT gives you options:",
+    ],
+    bullets: [
+        "Sell your stream on the open market for upfront cash.",
+        "Use it as collateral for a loan without interrupting the stream.",
+        "Fractionalize it to share or diversify your future earnings.",
+    ],
+    icon: LockOpen,
+  },
+  {
+    title: "Powered by Somnia: Speed & Security",
+    paragraphs: [
+        "ChronoFlow is built on the Somnia network to provide an unparalleled user experience.",
+        "Enjoy sub-second transaction finality, ultra-low gas fees (95%+ cheaper than Ethereum), and enterprise-grade security, making real-time streaming not just possible, but practical."
     ],
     icon: Shield,
   },
@@ -72,7 +93,7 @@ export default function PitchPage() {
   const touchStartX = useRef<number | null>(null);
 
   const paginate = (newDirection: number) => {
-    setPage((prev) => [(prev[0] + newDirection + slideCount) % slideCount, newDirection]);
+    setPage(([prevPage, _]) => [(prevPage + newDirection + slideCount) % slideCount, newDirection]);
   };
 
   useEffect(() => {
@@ -91,7 +112,7 @@ export default function PitchPage() {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [page]);
+  }, []);
 
   function onTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -240,3 +261,5 @@ export default function PitchPage() {
     </main>
   );
 }
+
+    

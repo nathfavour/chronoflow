@@ -28,6 +28,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWeb3 } from "@/web3/context";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { toast } from "sonner";
 
 interface FormData {
   title: string;
@@ -108,6 +109,22 @@ export function EnhancedCreateStream() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [estimatedGasCost, setEstimatedGasCost] = useState("0.0024");
+  const { address, connect, disconnect, createStream, getNextStreamId, tx } = useWeb3();
+  const [nextStreamId, setNextStreamId] = useState<bigint | null>(null);
+
+  // Fetch next stream id once wallet connected (preview)
+  useEffect(() => {
+    if (address && nextStreamId === null) {
+      (async () => {
+        try {
+          const id = await getNextStreamId();
+            if (id) setNextStreamId(id);
+        } catch (e) {
+          console.warn("Failed to fetch next stream id", e);
+        }
+      })();
+    }
+  }, [address, nextStreamId, getNextStreamId]);
 
   const steps = [
     { id: "template", title: "Choose Template", icon: "📋" },
@@ -209,13 +226,48 @@ export function EnhancedCreateStream() {
 
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
-    
-    setIsSubmitting(true);
+    if (!address) {
+      toast.error("Connect wallet to create stream");
+      return;
+    }
+    if (!formData.startDate || !formData.endDate) {
+      toast.error("Start and end date required");
+      return;
+    }
+    const start = Math.floor(new Date(formData.startDate).getTime() / 1000);
+    const stop = Math.floor(new Date(formData.endDate).getTime() / 1000);
+    if (isNaN(start) || isNaN(stop)) {
+      toast.error("Invalid date(s)");
+      return;
+    }
+    if (stop <= start) {
+      toast.error("End time must be after start time");
+      return;
+    }
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      console.log("Creating stream:", formData);
-      // Success - would normally redirect or show success state
+      setIsSubmitting(true);
+      const resultPromise = createStream({
+        recipient: formData.recipientAddress,
+        amount: formData.totalAmount,
+        tokenSymbol: formData.tokenSymbol,
+        start,
+        stop
+      });
+      await toast.promise(
+        resultPromise,
+        {
+          loading: "Submitting transaction...",
+          success: (res) => {
+            return res?.streamId ? `Stream #${res.streamId.toString()} created` : "Stream created";
+          },
+            error: (e) => e?.message || "Transaction failed"
+        }
+      );
+      // Refresh preview id for next potential stream
+      try {
+        const id = await getNextStreamId();
+        if (id) setNextStreamId(id);
+      } catch {}
     } catch (error) {
       console.error("Error creating stream:", error);
     } finally {
@@ -243,9 +295,19 @@ export function EnhancedCreateStream() {
                 {steps[currentStep].title} • Step {currentStep + 1} of {steps.length}
               </p>
             </div>
-            <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
-              Somnia Network
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
+                Somnia Network
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => (address ? disconnect() : connect())}
+                disabled={tx.pending || isSubmitting}
+              >
+                {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connect Wallet'}
+              </Button>
+            </div>
           </div>
 
           {/* Progress Bar */}
@@ -310,6 +372,7 @@ export function EnhancedCreateStream() {
                         variant="outline" 
                         className="w-full"
                         onClick={nextStep}
+                        disabled={isSubmitting || tx.pending}
                       >
                         Start from Scratch
                       </Button>
@@ -621,12 +684,12 @@ export function EnhancedCreateStream() {
                         className="w-full" 
                         size="lg"
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || tx.pending}
                       >
-                        {isSubmitting ? (
+                        {isSubmitting || tx.pending ? (
                           <div className="flex items-center space-x-2">
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Creating Stream...</span>
+                            <span>{tx.pending ? 'Waiting for confirmation...' : 'Creating Stream...'}</span>
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2">
@@ -646,12 +709,12 @@ export function EnhancedCreateStream() {
               <Button 
                 variant="outline" 
                 onClick={prevStep}
-                disabled={currentStep === 0}
+                disabled={currentStep === 0 || isSubmitting || tx.pending}
               >
                 Previous
               </Button>
               {currentStep < steps.length - 1 && (
-                <Button onClick={nextStep}>
+                <Button onClick={nextStep} disabled={isSubmitting || tx.pending}>
                   Next
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
@@ -720,7 +783,7 @@ export function EnhancedCreateStream() {
                       {formData.title || "Untitled Stream"}
                     </p>
                     <div className="mt-2 text-xs text-muted-foreground">
-                      #{Math.random().toString(36).substr(2, 6).toUpperCase()}
+                      {nextStreamId ? `#${nextStreamId.toString()}` : "#??????"}
                     </div>
                   </div>
                 </div>
