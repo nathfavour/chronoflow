@@ -658,51 +658,65 @@ export function EnhancedCreateStream() {
                             {allowanceLabel}
                           </Badge>
                         </div>
-                        {allowanceStatus === 'insufficient' && address && (
-                          <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              disabled={!requiredDeposit || isSubmitting || tx.pending || preApproving}
-                              onClick={async () => {
-                                if (!address) { toast.error('Connect wallet first'); return; }
-                                if (!formData.tokenSymbol || !requiredDeposit) return;
-                                const token = getToken(formData.tokenSymbol);
-                                if (!token) return;
-                                try {
-                                  setPreApproving(true);
-                                  await toast.promise(
-                                    ensureAllowance(formData.tokenSymbol, addresses.ChronoFlowCore, requiredDeposit),
-                                    {
-                                      loading: 'Sending approval transaction...',
-                                      success: (ok) => ok ? 'Allowance updated' : 'Allowance unchanged',
-                                      error: (e) => e?.message || 'Approval failed'
-                                    }
-                                  );
-                                  setAllowanceRefreshNonce(n => n + 1);
-                                } catch (e) {
-                                  // error toast handled above
-                                } finally {
-                                  setPreApproving(false);
-                                }
-                              }}
-                            >
-                              {preApproving ? (
-                                <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Approving...</span>
-                              ) : 'Pre-Approve Now'}
-                            </Button>
-                            <p className="text-[10px] text-muted-foreground flex-1 min-w-[180px]">
-                              Optional: grant allowance ahead of final submission to avoid dual prompts.
-                            </p>
-                            {lastAllowance !== null && requiredDeposit && formData.tokenSymbol && (
-                              <p className="text-[10px] text-muted-foreground w-full">
-                                Current: {(() => { const t = getToken(formData.tokenSymbol); return t ? formatTokenAmount(lastAllowance, t.decimals) : '0'; })()} / Needed: {(() => { const t = getToken(formData.tokenSymbol); return t ? formatTokenAmount(requiredDeposit, t.decimals) : '0'; })()} {formData.tokenSymbol}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
+{address && lastAllowance !== null && requiredDeposit && formData.tokenSymbol && (
+  <p className="text-[10px] text-muted-foreground mt-1">
+    {(() => {
+      const t = getToken(formData.tokenSymbol);
+      if (!t) return null;
+      const currentStr = formatTokenAmount(lastAllowance, t.decimals);
+      const neededStr = formatTokenAmount(requiredDeposit, t.decimals);
+      const percent = (() => {
+        if (requiredDeposit === 0n) return '0%';
+        if (lastAllowance >= requiredDeposit) return '100%';
+        const bps = (lastAllowance * 10000n) / requiredDeposit; // hundredths of a percent
+        const intPart = bps / 100n;
+        const fracPart = bps % 100n;
+        const fracStr = fracPart === 0n ? '' : '.' + fracPart.toString().padStart(2,'0').replace(/0+$/,'');
+        return `${intPart.toString()}${fracStr}%`;
+      })();
+      return `Allowance: ${currentStr} / ${neededStr} ${formData.tokenSymbol} (${percent})`;
+    })()}
+  </p>
+)}
+{allowanceStatus === 'insufficient' && address && (
+  <div className="flex items-center justify-between gap-3 flex-wrap">
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      disabled={!requiredDeposit || isSubmitting || tx.pending || preApproving}
+      onClick={async () => {
+        if (!address) { toast.error('Connect wallet first'); return; }
+        if (!formData.tokenSymbol || !requiredDeposit) return;
+        const token = getToken(formData.tokenSymbol);
+        if (!token) return;
+        try {
+          setPreApproving(true);
+          await toast.promise(
+            ensureAllowance(formData.tokenSymbol, addresses.ChronoFlowCore, requiredDeposit),
+            {
+              loading: 'Sending approval transaction...',
+              success: (ok) => ok ? 'Allowance updated' : 'Allowance unchanged',
+              error: (e) => e?.message || 'Approval failed'
+            }
+          );
+          setAllowanceRefreshNonce(n => n + 1);
+        } catch (e) {
+        } finally {
+          setPreApproving(false);
+        }
+      }}
+    >
+      {preApproving ? (
+        <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Approving...</span>
+      ) : 'Pre-Approve Now'}
+    </Button>
+    <p className="text-[10px] text-muted-foreground flex-1 min-w-[180px]">
+      Optional: grant allowance ahead of final submission to avoid dual prompts.
+    </p>
+  </div>
+)}
+                       </div>
                     </CardContent>
                   </Card>
                 </motion.div>
