@@ -108,6 +108,15 @@ function toUnitsLocal(amount: string, decimals: number): bigint {
   }
 }
 
+function formatTokenAmount(value: bigint, decimals: number, precision = 4) {
+  const factor = 10n ** BigInt(decimals);
+  const whole = value / factor;
+  const frac = value % factor;
+  if (frac === 0n) return whole.toString();
+  const fracStr = frac.toString().padStart(decimals, '0').slice(0, precision).replace(/0+$/,'');
+  return fracStr ? `${whole.toString()}.${fracStr}` : whole.toString();
+}
+
 export function EnhancedCreateStream() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>({
@@ -686,6 +695,11 @@ export function EnhancedCreateStream() {
                             <p className="text-[10px] text-muted-foreground flex-1 min-w-[180px]">
                               Optional: grant allowance ahead of final submission to avoid dual prompts.
                             </p>
+                            {lastAllowance !== null && requiredDeposit && formData.tokenSymbol && (
+                              <p className="text-[10px] text-muted-foreground w-full">
+                                Current: {(() => { const t = getToken(formData.tokenSymbol); return t ? formatTokenAmount(lastAllowance, t.decimals) : '0'; })()} / Needed: {(() => { const t = getToken(formData.tokenSymbol); return t ? formatTokenAmount(requiredDeposit, t.decimals) : '0'; })()} {formData.tokenSymbol}
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>
