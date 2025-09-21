@@ -24,7 +24,7 @@ import { useWeb3 } from "@/web3/context";
 import { ConnectButton } from "./ConnectButton";
 import { toast } from "sonner";
 import { getToken } from "@/web3/tokens";
-import { addresses } from "@/web3/integrations";
+
 import { TxActivity } from "./TxActivity";
 import { useAllowanceStatus } from "@/newui/hooks/useAllowanceStatus";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
@@ -116,7 +116,7 @@ export function EnhancedCreateStream() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [estimatedGasCost, setEstimatedGasCost] = useState("0.0024");
+  const estimatedGasCost = "0.0024";
   const { address, createStream, getNextStreamId, ensureAllowance, tx } = useWeb3();
   const [nextStreamId, setNextStreamId] = useState<bigint | null>(null);
   const [preApproving, setPreApproving] = useState(false);
