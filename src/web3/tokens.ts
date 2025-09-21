@@ -15,6 +15,7 @@ export const TOKENS: TokenInfo[] = [
   { symbol: 'USDT', address: '0x0000000000000000000000000000000000000003', decimals: 6, name: 'Tether USD' },
   { symbol: 'ETH',  address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18, name: 'Ether' },
   { symbol: 'WBTC', address: '0x0000000000000000000000000000000000000004', decimals: 8, name: 'Wrapped Bitcoin' },
+  { symbol: 'STT',  address: '0x0000000000000000000000000000000000000005', decimals: 18, name: 'Somnia Testnet Token' },
 ];
 
 export function getToken(symbol: string): TokenInfo | undefined {

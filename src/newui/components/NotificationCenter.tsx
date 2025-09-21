@@ -73,7 +73,7 @@ const mockNotifications: Notification[] = [
     id: '4',
     type: 'transaction',
     title: 'Transaction Confirmed',
-    message: 'Stream creation transaction confirmed on Somnia Network (Gas: $0.002)',
+    message: 'Stream creation transaction confirmed on Somnia Testnet (Gas: $0.002)',
     timestamp: '2 hours ago',
     read: true,
     priority: 'low'

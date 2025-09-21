@@ -22,7 +22,7 @@ export const mockStreams: Stream[] = [
     sender: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
     recipient: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
     totalAmount: 50000,
-    token: { symbol: 'SOM', name: 'Somnia Token' },
+    token: { symbol: 'STT', name: 'Somnia Testnet Token' },
     startTime: now - oneWeek, // Started 1 week ago
     endTime: now + oneMonth * 3, // Ends in 3 months
     status: 'active',

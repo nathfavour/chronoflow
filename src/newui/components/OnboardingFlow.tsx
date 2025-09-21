@@ -56,7 +56,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
             <h3 className="text-2xl font-bold">Ready to revolutionize payments?</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
               ChronoFlow transforms traditional payments into continuous, real-time streams 
-              backed by tradeable NFTs on the lightning-fast Somnia network.
+              backed by tradeable NFTs on the lightning-fast Somnia Testnet.
             </p>
             <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
               <div className="text-center">
@@ -147,7 +147,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
               </div>
               <h4 className="font-semibold mb-2">Secure</h4>
               <p className="text-sm text-muted-foreground">
-                All streams backed by smart contracts and Somnia network security
+                All streams backed by smart contracts and Somnia Testnet security
               </p>
             </Card>
           </div>

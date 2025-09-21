@@ -102,7 +102,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     setWallet(w => {
       if (w.status === 'disconnected') return w;
       const chainMismatch = newId !== SOMNIA_CHAIN_ID;
-      return { ...w, chainId: newId, chainMismatch, status: chainMismatch ? 'error' : 'connected', errorCode: chainMismatch ? 'CHAIN_MISMATCH' : undefined, errorMessage: chainMismatch ? 'Please switch to Somnia network' : undefined };
+      return { ...w, chainId: newId, chainMismatch, status: chainMismatch ? 'error' : 'connected', errorCode: chainMismatch ? 'CHAIN_MISMATCH' : undefined, errorMessage: chainMismatch ? 'Please switch to Somnia Testnet' : undefined };
     });
   }, []);
 
@@ -149,7 +149,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       }
       const address = accounts[0] as Address;
       const chainMismatch = chainId !== SOMNIA_CHAIN_ID;
-      setWallet({ status: chainMismatch ? 'error' : 'connected', address, chainId, connectorId: 'injected', chainMismatch, errorCode: chainMismatch ? 'CHAIN_MISMATCH' : undefined, errorMessage: chainMismatch ? 'Please switch to Somnia network' : undefined });
+      setWallet({ status: chainMismatch ? 'error' : 'connected', address, chainId, connectorId: 'injected', chainMismatch, errorCode: chainMismatch ? 'CHAIN_MISMATCH' : undefined, errorMessage: chainMismatch ? 'Please switch to Somnia Testnet' : undefined });
       lastConnectorRef.current = 'injected';
       localStorage.setItem(LS_LAST_CONNECTOR_KEY, 'injected');
       if (anyWindow.ethereum?.on) {
