@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Button } from "./ui/button";
 import { ConnectButton } from "./ConnectButton";
-import { Wallet, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 export function AnimatedNavbar() {

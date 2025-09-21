@@ -13,7 +13,6 @@ import {
   TrendingUp,
   Shield,
   Zap,
-  Users,
   Play,
   BookOpen,
   Target,

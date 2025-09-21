@@ -2,6 +2,7 @@ import { Monitor, Moon, Sun, User, Shield, Bell, CreditCard, Database, Globe, Lo
 import { Card } from "./ui/card";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
+import { ConnectButton } from "./ConnectButton";
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 import { useTheme } from "./ThemeProvider";
@@ -315,9 +316,7 @@ const settingSections: SettingSection[] = [
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Button size="sm" disabled className="opacity-50 backdrop-blur-sm">
-                    Connect Wallet
-                  </Button>
+                  <ConnectButton size="sm" className="justify-center" />
                 </motion.div>
               </div>
             </div>

@@ -7,17 +7,17 @@ import { getToken } from "./tokens";
 import type { WalletState, TxRecord, EnqueueTxPayload, NormalizedError, StreamData } from './types';
 
 // --- Constants ---
-const SOMNIA_CHAIN_ID = 1868; // update if actual differs
+const SOMNIA_CHAIN_ID = 50312; // Somnia Testnet (corrected)
 const SOMNIA_CHAIN_HEX = '0x' + SOMNIA_CHAIN_ID.toString(16);
 const SOMNIA_CHAIN_PARAMS = {
   chainId: SOMNIA_CHAIN_HEX,
-  chainName: 'Somnia',
-  nativeCurrency: { name: 'Somnia', symbol: 'SOM', decimals: 18 },
+  chainName: 'Somnia Testnet',
+  nativeCurrency: { name: 'Somnia Testnet', symbol: 'STT', decimals: 18 },
   rpcUrls: ['https://dream-rpc.somnia.network'],
-  blockExplorerUrls: ['https://explorer.somnia.network']
+  blockExplorerUrls: ['https://shannon-explorer.somnia.network']
 };
 const LS_LAST_CONNECTOR_KEY = 'cf:lastConnector';
-const EXPLORER_BASE = 'https://explorer.somnia.network';
+const EXPLORER_BASE = 'https://shannon-explorer.somnia.network';
 
 // --- Legacy tx status (kept for transitional compatibility) ---
 interface TxStatusLegacy { pending: boolean; hash?: Hash; error?: string; }
