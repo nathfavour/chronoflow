@@ -8,7 +8,6 @@ import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
-// Removed unused Tabs imports
 import {
   Calendar,
   DollarSign,
@@ -23,12 +22,12 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { motion, AnimatePresence } from "framer-motion";
 import { useWeb3 } from "@/web3/context";
 import { ConnectButton } from "./ConnectButton";
-// Removed unused Tooltip imports
 import { toast } from "sonner";
 import { getToken } from "@/web3/tokens";
 import { addresses } from "@/web3/integrations";
-import { encodeFunctionData } from "viem";
 import { TxActivity } from "./TxActivity";
+import { useAllowanceStatus } from "@/newui/hooks/useAllowanceStatus";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 interface FormData {
   title: string;
@@ -90,24 +89,6 @@ const VALIDATION_RULES = {
   streamType: { required: true }
 };
 
-// Minimal ABI subset for allowance checks (read-only)
-const ERC20_ABI: any = [
-  { "type": "function", "stateMutability": "view", "name": "allowance", "inputs": [ { "name": "owner", "type": "address" }, { "name": "spender", "type": "address" } ], "outputs": [ { "name": "", "type": "uint256" } ] }
-];
-
-function toUnitsLocal(amount: string, decimals: number): bigint {
-  const sanitized = amount.trim();
-  if (!/^[0-9]*([.][0-9]*)?$/.test(sanitized)) return 0n;
-  const [wholeRaw, fracRaw = ""] = sanitized.split(".");
-  const whole = wholeRaw === "" ? "0" : wholeRaw;
-  const fracPadded = (fracRaw + "0".repeat(decimals)).slice(0, decimals);
-  try {
-    return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(fracPadded || "0");
-  } catch {
-    return 0n;
-  }
-}
-
 function formatTokenAmount(value: bigint, decimals: number, precision = 4) {
   const factor = 10n ** BigInt(decimals);
   const whole = value / factor;
@@ -138,15 +119,14 @@ export function EnhancedCreateStream() {
   const [estimatedGasCost, setEstimatedGasCost] = useState("0.0024");
   const { address, createStream, getNextStreamId, ensureAllowance, tx } = useWeb3();
   const [nextStreamId, setNextStreamId] = useState<bigint | null>(null);
-
-  // Allowance status tracking
-  const [allowanceStatus, setAllowanceStatus] = useState<
-    'idle' | 'checking' | 'ready' | 'insufficient' | 'unsupported' | 'error'
-  >('idle');
-  const [lastAllowance, setLastAllowance] = useState<bigint | null>(null);
-  const [requiredDeposit, setRequiredDeposit] = useState<bigint | null>(null);
-  const [allowanceRefreshNonce, setAllowanceRefreshNonce] = useState(0);
   const [preApproving, setPreApproving] = useState(false);
+  const [approvalMode, setApprovalMode] = useState<'exact' | 'buffered'>('exact');
+
+  // Hook-based allowance status
+  const allowance = useAllowanceStatus({ address, tokenSymbol: formData.tokenSymbol, totalAmount: formData.totalAmount });
+
+  // Buffer configuration (basis points)
+  const BUFFER_BPS = 12000n; // 120%
 
   // Fetch next stream id once wallet connected (preview)
   useEffect(() => {
@@ -154,63 +134,13 @@ export function EnhancedCreateStream() {
       (async () => {
         try {
           const id = await getNextStreamId();
-          if (id) setNextStreamId(id);
+            if (id) setNextStreamId(id);
         } catch (e) {
           console.warn("Failed to fetch next stream id", e);
         }
       })();
     }
   }, [address, nextStreamId, getNextStreamId]);
-
-  // Debounced allowance check (read-only)
-  useEffect(() => {
-    if (!address || !formData.tokenSymbol || !formData.totalAmount) {
-      setAllowanceStatus('idle');
-      setLastAllowance(null);
-      setRequiredDeposit(null);
-      return;
-    }
-    if (parseFloat(formData.totalAmount) <= 0) {
-      setAllowanceStatus('idle');
-      return;
-    }
-    const token = getToken(formData.tokenSymbol);
-    if (!token) {
-      setAllowanceStatus('idle');
-      return;
-    }
-    if (token.symbol.toUpperCase() === 'ETH') {
-      // Native ETH streaming not yet supported (per createStream); show unsupported
-      setAllowanceStatus('unsupported');
-      setLastAllowance(null);
-      setRequiredDeposit(null);
-      return;
-    }
-
-    let cancelled = false;
-    setAllowanceStatus('checking');
-    const deposit = toUnitsLocal(formData.totalAmount, token.decimals);
-    setRequiredDeposit(deposit);
-    const handle = setTimeout(async () => {
-      try {
-        const anyWindow: any = window;
-        if (!anyWindow?.ethereum) throw new Error('No wallet');
-        const data = encodeFunctionData({ abi: ERC20_ABI, functionName: 'allowance', args: [address, addresses.ChronoFlowCore] });
-        const callParams: any = { to: token.address, data };
-        const result: string = await anyWindow.ethereum.request({ method: 'eth_call', params: [callParams, 'latest'] });
-        if (cancelled) return;
-        const allowanceBn = BigInt(result);
-        setLastAllowance(allowanceBn);
-        setAllowanceStatus(allowanceBn >= deposit ? 'ready' : 'insufficient');
-      } catch (e) {
-        if (cancelled) return;
-        console.warn('Allowance check failed', e);
-        setAllowanceStatus('error');
-      }
-    }, 500);
-
-    return () => { cancelled = true; clearTimeout(handle); };
-  }, [address, formData.tokenSymbol, formData.totalAmount, allowanceRefreshNonce]);
 
   const steps = [
     { id: "template", title: "Choose Template", icon: "📋" },
@@ -222,7 +152,6 @@ export function EnhancedCreateStream() {
 
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
@@ -230,13 +159,12 @@ export function EnhancedCreateStream() {
 
   const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};
-
     switch (step) {
-      case 1: // Details
+      case 1:
         if (!formData.title.trim()) newErrors.title = "Title is required";
         if (!formData.streamType) newErrors.streamType = "Stream type is required";
         break;
-      case 2: // Recipient & Amount
+      case 2:
         if (!formData.recipientAddress) {
           newErrors.recipientAddress = "Recipient address is required";
         } else if (!VALIDATION_RULES.recipientAddress.pattern.test(formData.recipientAddress)) {
@@ -249,7 +177,7 @@ export function EnhancedCreateStream() {
         }
         if (!formData.tokenSymbol) newErrors.tokenSymbol = "Token is required";
         break;
-      case 3: // Schedule
+      case 3:
         if (!formData.startDate) newErrors.startDate = "Start date is required";
         if (!formData.endDate) newErrors.endDate = "End date is required";
         if (formData.startDate && formData.endDate) {
@@ -259,7 +187,6 @@ export function EnhancedCreateStream() {
         }
         break;
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -299,7 +226,6 @@ export function EnhancedCreateStream() {
       const amount = parseFloat(formData.totalAmount);
       const days = calculateDuration();
       const seconds = days * 24 * 60 * 60;
-
       return {
         perSecond: seconds > 0 ? (amount / seconds).toFixed(8) : "0",
         perMinute: seconds > 0 ? (amount / (seconds / 60)).toFixed(6) : "0",
@@ -353,13 +279,11 @@ export function EnhancedCreateStream() {
           error: (e) => e?.message || "Transaction failed"
         }
       );
-      // Refresh preview id for next potential stream
       try {
         const id = await getNextStreamId();
         if (id) setNextStreamId(id);
       } catch {}
-      // Refresh allowance status after potential approval + create
-      setAllowanceRefreshNonce(n => n + 1);
+      allowance.refresh();
     } catch (error) {
       console.error("Error creating stream:", error);
     } finally {
@@ -369,6 +293,10 @@ export function EnhancedCreateStream() {
 
   const progress = ((currentStep + 1) / steps.length) * 100;
   const rates = calculateRates();
+
+  const allowanceStatus = allowance.status;
+  const lastAllowance = allowance.lastAllowance;
+  const requiredDeposit = allowance.requiredDeposit;
 
   const allowanceLabel = allowanceStatus === 'ready' ? 'Ready' :
     allowanceStatus === 'insufficient' ? 'Needs Approval' :
@@ -382,10 +310,16 @@ export function EnhancedCreateStream() {
     allowanceStatus === 'error' ? 'bg-red-500/20 text-red-600' :
     allowanceStatus === 'checking' ? 'bg-blue-500/20 text-blue-600' : 'bg-slate-500/20 text-slate-600';
 
+  const preApproveAmount = () => {
+    if (!requiredDeposit) return null;
+    if (approvalMode === 'exact') return requiredDeposit;
+    // buffered: round up
+    return (requiredDeposit * BUFFER_BPS + 9999n) / 10000n;
+  };
+
   return (
     <div className="min-h-screen bg-background pt-24 pb-24 lg:pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Progress */}
         <motion.div
           className="mb-8"
           initial={{ opacity: 0, y: 20 }}
@@ -403,12 +337,9 @@ export function EnhancedCreateStream() {
               <Badge variant="secondary" className="bg-blue-500/20 text-blue-600 border-blue-500/20">
                 Somnia Network
               </Badge>
-              {/* Unified Connect Button */}
               <ConnectButton size="sm" />
             </div>
           </div>
-
-          {/* Progress Bar */}
           <div className="space-y-2">
             <Progress value={progress} className="h-2" />
             <div className="flex justify-between text-xs text-muted-foreground">
@@ -424,10 +355,8 @@ export function EnhancedCreateStream() {
         </motion.div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Form */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
-              {/* Step 0: Template Selection */}
               {currentStep === 0 && (
                 <motion.div
                   key="template"
@@ -479,7 +408,6 @@ export function EnhancedCreateStream() {
                 </motion.div>
               )}
 
-              {/* Step 1: Stream Details */}
               {currentStep === 1 && (
                 <motion.div
                   key="details"
@@ -509,7 +437,6 @@ export function EnhancedCreateStream() {
                           <p className="text-sm text-red-500">{errors.title}</p>
                         )}
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
                         <Textarea
@@ -520,7 +447,6 @@ export function EnhancedCreateStream() {
                           rows={3}
                         />
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="streamType">Stream Type *</Label>
                         <Select
@@ -547,7 +473,6 @@ export function EnhancedCreateStream() {
                 </motion.div>
               )}
 
-              {/* Step 2: Recipient & Amount */}
               {currentStep === 2 && (
                 <motion.div
                   key="recipient"
@@ -580,7 +505,6 @@ export function EnhancedCreateStream() {
                           <p className="text-sm text-red-500">{errors.recipientAddress}</p>
                         )}
                       </div>
-
                       <div className="grid md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="amount">Total Amount *</Label>
@@ -600,7 +524,6 @@ export function EnhancedCreateStream() {
                             <p className="text-sm text-red-500">{errors.totalAmount}</p>
                           )}
                         </div>
-
                         <div className="space-y-2">
                           <Label htmlFor="token">Token *</Label>
                           <Select
@@ -623,8 +546,6 @@ export function EnhancedCreateStream() {
                           )}
                         </div>
                       </div>
-
-                      {/* Gas Estimate */}
                       <Alert>
                         <Zap className="h-4 w-4" />
                         <AlertDescription>
@@ -636,8 +557,6 @@ export function EnhancedCreateStream() {
                           </div>
                         </AlertDescription>
                       </Alert>
-
-                      {/* Allowance Status */}
                       <div className="p-3 rounded-md border bg-muted/30 space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="text-sm pr-4">
@@ -665,78 +584,82 @@ export function EnhancedCreateStream() {
                                 variant="ghost"
                                 className="h-6 px-2 text-[10px]"
                                 disabled={allowanceStatus === 'checking'}
-                                onClick={() => setAllowanceRefreshNonce(n => n + 1)}
+                                onClick={() => allowance.refresh()}
                               >
-                                {allowanceStatus === 'checking' ? '...' : 'Refresh'}
+                                {allowanceStatus === 'checking' ? '...' : allowanceStatus === 'error' ? 'Retry' : 'Refresh'}
                               </Button>
                             )}
                           </div>
                         </div>
-{address && formData.tokenSymbol && formData.totalAmount && allowanceStatus !== 'idle' && allowanceStatus !== 'unsupported' && allowanceStatus !== 'checking' && lastAllowance !== null && requiredDeposit && (
-  <p className="text-[10px] text-muted-foreground mt-1">
-    {(() => {
-      const t = getToken(formData.tokenSymbol!);
-      if (!t) return null;
-      const currentStr = formatTokenAmount(lastAllowance!, t.decimals);
-      const neededStr = formatTokenAmount(requiredDeposit!, t.decimals);
-      const percent = (() => {
-        if (requiredDeposit === 0n) return '0%';
-        if (lastAllowance! >= requiredDeposit!) return '100%';
-        const bps = (lastAllowance! * 10000n) / requiredDeposit!; // hundredths of a percent
-        const intPart = bps / 100n;
-        const fracPart = bps % 100n;
-        const fracStr = fracPart === 0n ? '' : '.' + fracPart.toString().padStart(2,'0').replace(/0+$/,'');
-        return `${intPart.toString()}${fracStr}%`;
-      })();
-      return `Allowance: ${currentStr} / ${neededStr} ${formData.tokenSymbol} (${percent})`;
-    })()}
-  </p>
-)}
-{allowanceStatus === 'insufficient' && address && (
-  <div className="flex items-center justify-between gap-3 flex-wrap">
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      disabled={!requiredDeposit || isSubmitting || tx.pending || preApproving}
-      onClick={async () => {
-        if (!address) { toast.error('Connect wallet first'); return; }
-        if (!formData.tokenSymbol || !requiredDeposit) return;
-        const token = getToken(formData.tokenSymbol);
-        if (!token) return;
-        try {
-          setPreApproving(true);
-          await toast.promise(
-            ensureAllowance(formData.tokenSymbol, addresses.ChronoFlowCore, requiredDeposit),
-            {
-              loading: 'Sending approval transaction...',
-              success: (ok) => ok ? 'Allowance updated' : 'Allowance unchanged',
-              error: (e) => e?.message || 'Approval failed'
-            }
-          );
-          setAllowanceRefreshNonce(n => n + 1);
-        } catch (e) {
-        } finally {
-          setPreApproving(false);
-        }
-      }}
-    >
-      {preApproving ? (
-        <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Approving...</span>
-      ) : 'Pre-Approve Now'}
-    </Button>
-    <p className="text-[10px] text-muted-foreground flex-1 min-w-[180px]">
-      Optional: grant allowance ahead of final submission to avoid dual prompts.
-    </p>
-  </div>
-)}
-                       </div>
+                        {address && formData.tokenSymbol && formData.totalAmount && allowanceStatus !== 'idle' && allowanceStatus !== 'unsupported' && allowanceStatus !== 'checking' && lastAllowance !== null && requiredDeposit && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {(() => {
+                              const t = getToken(formData.tokenSymbol!);
+                              if (!t) return null;
+                              const currentStr = formatTokenAmount(lastAllowance!, t.decimals);
+                              const neededStr = formatTokenAmount(requiredDeposit!, t.decimals);
+                              const percent = (() => {
+                                if (requiredDeposit === 0n) return '0%';
+                                if (lastAllowance! >= requiredDeposit!) return '100%';
+                                const bps = (lastAllowance! * 10000n) / requiredDeposit!;
+                                const intPart = bps / 100n;
+                                const fracPart = bps % 100n;
+                                const fracStr = fracPart === 0n ? '' : '.' + fracPart.toString().padStart(2,'0').replace(/0+$/,'');
+                                return `${intPart.toString()}${fracStr}%`;
+                              })();
+                              return `Allowance: ${currentStr} / ${neededStr} ${formData.tokenSymbol} (${percent})`;
+                            })()}
+                          </p>
+                        )}
+                        {allowanceStatus === 'insufficient' && address && (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={!requiredDeposit || isSubmitting || tx.pending || preApproving}
+                                onClick={async () => {
+                                  if (!address) { toast.error('Connect wallet first'); return; }
+                                  if (!formData.tokenSymbol || !requiredDeposit) return;
+                                  const amount = preApproveAmount();
+                                  if (!amount) return;
+                                  try {
+                                    await allowance.preApprove({
+                                      symbol: formData.tokenSymbol,
+                                      amount,
+                                      ensureAllowance,
+                                      setPreApproving,
+                                      toastWrap: (p, msgs) => toast.promise(p, msgs)
+                                    });
+                                  } catch {}
+                                }}
+                              >
+                                {preApproving ? (
+                                  <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> Approving...</span>
+                                ) : approvalMode === 'exact' ? 'Pre-Approve Now' : 'Pre-Approve Buffered'}
+                              </Button>
+                              <ToggleGroup
+                                type="single"
+                                value={approvalMode}
+                                onValueChange={(val) => { if (val === 'exact' || val === 'buffered') setApprovalMode(val); }}
+                                className="h-7"
+                              >
+                                <ToggleGroupItem value="exact" className="text-[10px] px-2">Exact</ToggleGroupItem>
+                                <ToggleGroupItem value="buffered" className="text-[10px] px-2">Buffered +20%</ToggleGroupItem>
+                              </ToggleGroup>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              {approvalMode === 'exact' ? 'Approve exactly the required deposit amount.' : 'Approve slightly more (120%) to avoid repeat approvals if you adjust the stream upward before creating.'}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
               )}
 
-              {/* Step 3: Schedule */}
               {currentStep === 3 && (
                 <motion.div
                   key="schedule"
@@ -770,7 +693,6 @@ export function EnhancedCreateStream() {
                             <p className="text-sm text-red-500">{errors.startDate}</p>
                           )}
                         </div>
-
                         <div className="space-y-2">
                           <Label htmlFor="endDate">End Date *</Label>
                           <div className="relative">
@@ -788,8 +710,6 @@ export function EnhancedCreateStream() {
                           )}
                         </div>
                       </div>
-
-                      {/* Advanced Options */}
                       <div className="border-t pt-4">
                         <h4 className="font-medium mb-4">Advanced Options</h4>
                         <div className="space-y-4">
@@ -814,7 +734,6 @@ export function EnhancedCreateStream() {
                 </motion.div>
               )}
 
-              {/* Step 4: Review */}
               {currentStep === 4 && (
                 <motion.div
                   key="review"
@@ -831,7 +750,6 @@ export function EnhancedCreateStream() {
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      {/* Summary */}
                       <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-3">
                           <h4 className="font-medium">Stream Details</h4>
@@ -852,7 +770,6 @@ export function EnhancedCreateStream() {
                             </div>
                           </div>
                         </div>
-
                         <div className="space-y-3">
                           <h4 className="font-medium">Payment Details</h4>
                           <div className="space-y-2 text-sm">
@@ -897,8 +814,6 @@ export function EnhancedCreateStream() {
                           </div>
                         </div>
                       </div>
-
-                      {/* Action Button */}
                       <Button
                         className="w-full"
                         size="lg"
@@ -922,8 +837,6 @@ export function EnhancedCreateStream() {
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {/* Navigation */}
             <div className="flex justify-between mt-6">
               <Button
                 variant="outline"
@@ -940,10 +853,7 @@ export function EnhancedCreateStream() {
               )}
             </div>
           </div>
-
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Live Preview */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -957,21 +867,18 @@ export function EnhancedCreateStream() {
                     <span className="text-muted-foreground">Duration</span>
                     <span className="font-medium">{calculateDuration()} days</span>
                   </div>
-
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Per Second</span>
                     <span className="font-medium font-mono">
                       {rates.perSecond} {formData.tokenSymbol || "TOKEN"}
                     </span>
                   </div>
-
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Per Hour</span>
                     <span className="font-medium">
                       {rates.perHour} {formData.tokenSymbol || "TOKEN"}
                     </span>
                   </div>
-
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Per Day</span>
                     <span className="font-medium">
@@ -981,8 +888,6 @@ export function EnhancedCreateStream() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* NFT Preview */}
             <Card>
               <CardHeader>
                 <CardTitle>NFT Preview</CardTitle>
@@ -1011,8 +916,6 @@ export function EnhancedCreateStream() {
                 </p>
               </CardContent>
             </Card>
-
-            {/* Security Info */}
             <Alert>
               <Shield className="h-4 w-4" />
               <AlertDescription>
@@ -1027,8 +930,6 @@ export function EnhancedCreateStream() {
                 </div>
               </AlertDescription>
             </Alert>
-
-            {/* Recent Tx Activity */}
             <TxActivity />
           </div>
         </div>
