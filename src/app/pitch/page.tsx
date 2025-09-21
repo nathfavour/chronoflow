@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/newui/components/ui/button";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 /*
   Completely reimagined ChronoFlow pitch deck (in-app).
@@ -184,7 +185,13 @@ const slideVariants = {
 
 export default function PitchPage() {
   const [[index, direction], setIndex] = useState<[number, number]>([0, 0]);
-  const [autoAdvance, setAutoAdvance] = useState(true);
+  const [autoAdvance, setAutoAdvance] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const saved = localStorage.getItem('pitch:autoAdvance');
+      return saved === null ? true : saved === '1';
+    } catch { return true; }
+  });
   const metricsAnimRef = useRef<number | null>(null);
   const metricsValuesRef = useRef<number[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -206,6 +213,10 @@ export default function PitchPage() {
     const dir = i > index ? 1 : -1;
     setIndex([i, dir]);
   };
+
+  useEffect(() => {
+    try { localStorage.setItem('pitch:autoAdvance', autoAdvance ? '1' : '0'); } catch {}
+  }, [autoAdvance]);
 
   // Auto-advance (pause on manual interaction)
   useEffect(() => {
@@ -388,11 +399,20 @@ function ContentBlock({ slide, metricsValues }: { slide: Slide; metricsValues: n
           ))}
           {slide.actions && (
             <div className="flex flex-wrap gap-3 pt-2">
-              {slide.actions.map(a => (
-                <Button key={a.label} size="sm" variant={a.intent === 'secondary' ? 'outline' : 'default'} className="text-xs md:text-sm">
-                  {a.label}
-                </Button>
-              ))}
+              {slide.actions.map(a => {
+                const href = a.label === 'Create a Stream' ? '/create' : a.label === 'View Marketplace' ? '/marketplace' : a.href;
+                return (
+                  <Button
+                    key={a.label}
+                    size="sm"
+                    variant={a.intent === 'secondary' ? 'outline' : 'default'}
+                    className="text-xs md:text-sm"
+                    asChild={!!href}
+                  >
+                    {href ? <Link href={href}>{a.label}</Link> : <span>{a.label}</span>}
+                  </Button>
+                );
+              })}
             </div>
           )}
         </div>
