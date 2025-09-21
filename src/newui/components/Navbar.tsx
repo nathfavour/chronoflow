@@ -1,4 +1,5 @@
 import { Button } from "./ui/button";
+import { ConnectButton } from "./ConnectButton";
 import { Wallet, Menu, X } from "lucide-react";
 import { useState } from "react";
 
@@ -35,10 +36,7 @@ export function Navbar() {
 
           {/* Connect Wallet Button */}
           <div className="hidden md:flex">
-            <Button className="flex items-center space-x-2">
-              <Wallet size={16} />
-              <span>Connect Wallet</span>
-            </Button>
+            <ConnectButton size="sm" />
           </div>
 
           {/* Mobile Menu Button */}
@@ -66,10 +64,7 @@ export function Navbar() {
               <a href="#" className="text-foreground hover:text-primary transition-colors">
                 Analytics
               </a>
-              <Button className="flex items-center justify-center space-x-2 w-full">
-                <Wallet size={16} />
-                <span>Connect Wallet</span>
-              </Button>
+              <ConnectButton size="sm" className="w-full justify-center" />
             </div>
           </div>
         )}

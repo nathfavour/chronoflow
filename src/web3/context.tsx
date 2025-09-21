@@ -7,7 +7,15 @@ import { getToken } from "./tokens";
 import type { WalletState, TxRecord, EnqueueTxPayload, NormalizedError, StreamData } from './types';
 
 // --- Constants ---
-const SOMNIA_CHAIN_ID = 1868; // placeholder (update if actual differs)
+const SOMNIA_CHAIN_ID = 1868; // update if actual differs
+const SOMNIA_CHAIN_HEX = '0x' + SOMNIA_CHAIN_ID.toString(16);
+const SOMNIA_CHAIN_PARAMS = {
+  chainId: SOMNIA_CHAIN_HEX,
+  chainName: 'Somnia',
+  nativeCurrency: { name: 'Somnia', symbol: 'SOM', decimals: 18 },
+  rpcUrls: ['https://dream-rpc.somnia.network'],
+  blockExplorerUrls: ['https://explorer.somnia.network']
+};
 const LS_LAST_CONNECTOR_KEY = 'cf:lastConnector';
 const EXPLORER_BASE = 'https://explorer.somnia.network';
 
@@ -28,6 +36,7 @@ interface Web3ContextValue {
   connectors: { id: string; name: string; ready: boolean; connect: () => Promise<void>; }[];
   connect: (connectorId?: string) => Promise<void>;
   disconnect: () => void;
+  switchToSomnia: () => Promise<void>;
   enqueueTx: (payload: EnqueueTxPayload) => Promise<Hash>;
   txQueue: TxRecord[];
   getNextStreamId: () => Promise<bigint | null>;
@@ -88,6 +97,40 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- Network switch helper ---
+  const internalUpdateChain = useCallback((newId: number) => {
+    setWallet(w => {
+      if (w.status === 'disconnected') return w;
+      const chainMismatch = newId !== SOMNIA_CHAIN_ID;
+      return { ...w, chainId: newId, chainMismatch, status: chainMismatch ? 'error' : 'connected', errorCode: chainMismatch ? 'CHAIN_MISMATCH' : undefined, errorMessage: chainMismatch ? 'Please switch to Somnia network' : undefined };
+    });
+  }, []);
+
+  const requestSwitch = useCallback(async (): Promise<number> => {
+    const anyWindow: any = window;
+    if (!anyWindow?.ethereum) throw new Error('No provider');
+    try {
+      await anyWindow.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: SOMNIA_CHAIN_HEX }] });
+    } catch (e: any) {
+      if (e?.code === 4902) {
+        await anyWindow.ethereum.request({ method: 'wallet_addEthereumChain', params: [SOMNIA_CHAIN_PARAMS] });
+      } else {
+        throw e;
+      }
+    }
+    const chainIdHex: string = await anyWindow.ethereum.request({ method: 'eth_chainId' });
+    return parseInt(chainIdHex, 16);
+  }, []);
+
+  const switchToSomnia = useCallback(async () => {
+    try {
+      const id = await requestSwitch();
+      internalUpdateChain(id);
+    } catch (e) {
+      // silently fail; UI already shows mismatch state
+    }
+  }, [requestSwitch, internalUpdateChain]);
+
   const connectInjected = useCallback(async () => {
     const anyWindow: any = window;
     if (!anyWindow?.ethereum) {
@@ -97,8 +140,13 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     try {
       setWallet(w => ({ ...w, status: 'connecting', errorCode: undefined, errorMessage: undefined }));
       const accounts: string[] = await anyWindow.ethereum.request({ method: 'eth_requestAccounts' });
-      const chainIdHex: string = await anyWindow.ethereum.request({ method: 'eth_chainId' });
-      const chainId = parseInt(chainIdHex, 16);
+      let chainIdHex: string = await anyWindow.ethereum.request({ method: 'eth_chainId' });
+      let chainId = parseInt(chainIdHex, 16);
+      if (chainId !== SOMNIA_CHAIN_ID) {
+        try {
+          chainId = await requestSwitch();
+        } catch {/* user may reject; keep mismatch */}
+      }
       const address = accounts[0] as Address;
       const chainMismatch = chainId !== SOMNIA_CHAIN_ID;
       setWallet({ status: chainMismatch ? 'error' : 'connected', address, chainId, connectorId: 'injected', chainMismatch, errorCode: chainMismatch ? 'CHAIN_MISMATCH' : undefined, errorMessage: chainMismatch ? 'Please switch to Somnia network' : undefined });
@@ -110,7 +158,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
         });
         anyWindow.ethereum.on('chainChanged', (cid: string) => {
           const newId = parseInt(cid, 16);
-          setWallet(w => ({ ...w, chainId: newId, chainMismatch: newId !== SOMNIA_CHAIN_ID, status: newId === SOMNIA_CHAIN_ID ? 'connected' : 'error', errorCode: newId === SOMNIA_CHAIN_ID ? undefined : 'CHAIN_MISMATCH', errorMessage: newId === SOMNIA_CHAIN_ID ? undefined : 'Please switch to Somnia network' }));
+          internalUpdateChain(newId);
         });
         anyWindow.ethereum.on('disconnect', () => {
           setWallet({ status: 'disconnected' });
@@ -121,7 +169,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       const norm = normalizeError(e);
       setWallet({ status: 'error', errorCode: norm.code, errorMessage: norm.message });
     }
-  }, []);
+  }, [requestSwitch, internalUpdateChain]);
 
   const connectors = [
     { id: 'injected', name: 'Browser Wallet', ready: typeof window !== 'undefined' && !!(window as any)?.ethereum, connect: connectInjected }
@@ -187,7 +235,6 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     const token = getToken(tokenSymbol);
     if (!token) throw new Error('Unknown token');
     if (token.symbol.toUpperCase() === 'ETH') return true; // native token does not need allowance
-    // Capture token fields to satisfy TS within nested closures
     const tokenAddress = token.address as Address;
     const tokenSym = token.symbol;
     const cacheKey = `${address}:${tokenAddress}:${spender}`;
@@ -246,7 +293,6 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     if (!publicClient || !address) return false;
     const marketplace = getMarketplaceContract(publicClient);
     const streamNft = getStreamNftContract(publicClient);
-    // Check approval
     const approved = await streamNft.read.isApprovedForAll([address, addresses.ChronoFlowMarketplace]);
     if (!approved) {
       const approveData = encodeFunctionData({ abi: streamNft.abi as any, functionName: 'setApprovalForAll', args: [addresses.ChronoFlowMarketplace, true] });
@@ -290,6 +336,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
     connectors,
     connect,
     disconnect,
+    switchToSomnia,
     enqueueTx,
     txQueue,
     getNextStreamId,

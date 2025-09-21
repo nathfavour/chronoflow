@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
+import { ConnectButton } from "./ConnectButton";
 import { Wallet, Menu, X } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 
@@ -69,13 +70,7 @@ export function AnimatedNavbar() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button 
-                  variant="outline" 
-                  className="hidden md:flex items-center space-x-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-300"
-                >
-                  <Wallet className="w-4 h-4" />
-                  <span>Connect Wallet</span>
-                </Button>
+                <ConnectButton size="sm" className="hidden md:flex" />
               </motion.div>
 
               {/* Mobile Menu Button */}
@@ -114,10 +109,7 @@ export function AnimatedNavbar() {
               }}
               transition={{ delay: 0.1 }}
             >
-              <Button className="w-full flex items-center justify-center space-x-2">
-                <Wallet className="w-4 h-4" />
-                <span>Connect Wallet</span>
-              </Button>
+              <ConnectButton size="sm" className="w-full justify-center" />
             </motion.div>
           </div>
         </motion.div>

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useWeb3 } from "@/web3/context";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -12,23 +12,35 @@ interface ConnectButtonProps {
 }
 
 export function ConnectButton({ size = "sm", showStatusBadge = true, className = "" }: ConnectButtonProps) {
-  const { wallet, connect, disconnect, tx } = useWeb3();
+  const { wallet, connect, disconnect, tx, switchToSomnia } = useWeb3();
   const { status, address, chainMismatch, errorCode } = wallet;
+  const [switching, setSwitching] = useState(false);
 
   const label = useMemo(() => {
     if (status === 'connecting') return 'Connecting...';
+    if (chainMismatch) return 'Switch Network';
     if (status === 'connected' && address) return `${address.slice(0, 6)}...${address.slice(-4)}`;
-    if (status === 'error') return chainMismatch ? 'Wrong Network' : 'Reconnect Wallet';
+    if (status === 'error') return 'Reconnect Wallet';
     return 'Connect Wallet';
   }, [status, address, chainMismatch]);
 
   const intent = useMemo<'default' | 'destructive' | 'outline'>(() => {
+    if (chainMismatch) return 'destructive';
     if (status === 'error') return 'destructive';
     if (status === 'connected') return 'outline';
     return 'default';
-  }, [status]);
+  }, [status, chainMismatch]);
 
-  function handleClick() {
+  async function handleClick() {
+    if (chainMismatch) {
+      try {
+        setSwitching(true);
+        await switchToSomnia();
+      } finally {
+        setSwitching(false);
+      }
+      return;
+    }
     if (status === 'connected') {
       disconnect();
       return;
@@ -36,19 +48,25 @@ export function ConnectButton({ size = "sm", showStatusBadge = true, className =
     connect();
   }
 
+  const isDisabled = tx.pending || status === 'connecting' || switching;
+
   return (
     <div className={`flex items-center gap-2 ${className}`}> 
-      <Button size={size} variant={intent} disabled={tx.pending || status === 'connecting'} onClick={handleClick}>
-        {status === 'connecting' && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-        {status === 'error' && !chainMismatch && <WifiOff className="w-4 h-4 mr-2" />}
-        {chainMismatch && <AlertTriangle className="w-4 h-4 mr-2" />}
-        {status === 'disconnected' && <PlugZap className="w-4 h-4 mr-2" />}
+      <Button size={size} variant={intent} disabled={isDisabled} onClick={handleClick}>
+        {(status === 'connecting' || switching) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        {!switching && status === 'error' && !chainMismatch && <WifiOff className="w-4 h-4 mr-2" />}
+        {!switching && chainMismatch && <AlertTriangle className="w-4 h-4 mr-2" />}
+        {!switching && status === 'disconnected' && <PlugZap className="w-4 h-4 mr-2" />}
         <span>{label}</span>
       </Button>
       {showStatusBadge && (
-        status === 'connected' ? (
-          <Badge variant="secondary" className={chainMismatch ? 'bg-red-500/20 text-red-600' : 'bg-green-500/20 text-green-600'}>
-            {chainMismatch ? 'Switch Network' : 'Connected'}
+        status === 'connected' && !chainMismatch ? (
+          <Badge variant="secondary" className="bg-green-500/20 text-green-600">
+            Connected
+          </Badge>
+        ) : chainMismatch ? (
+          <Badge variant="secondary" className="bg-red-500/20 text-red-600">
+            Wrong Network
           </Badge>
         ) : status === 'error' ? (
           <Badge variant="secondary" className="bg-red-500/20 text-red-600">

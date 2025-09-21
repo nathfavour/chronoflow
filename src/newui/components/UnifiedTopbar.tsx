@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ThemeToggle } from "./ThemeToggle";
+import { ConnectButton } from "./ConnectButton";
 
 type Page = "home" | "dashboard" | "create" | "marketplace" | "settings" | "analytics" | "notifications" | "onboarding";
 
@@ -270,19 +271,9 @@ export function UnifiedTopbar({ currentPage, onPageChange, isFullscreen = false,
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
+                    className="hidden md:flex"
                   >
-                    <Button 
-                      variant={config.variant === "landing" ? "outline" : "default"}
-                      size="sm"
-                      className={`hidden md:flex items-center space-x-2 ${
-                        config.variant === "landing" 
-                          ? "border-primary/20 hover:border-primary/40 hover:bg-primary/5" 
-                          : "bg-primary/90 hover:bg-primary"
-                      } transition-all duration-300`}
-                    >
-                      <Wallet className="w-4 h-4" />
-                      <span>Connect</span>
-                    </Button>
+                    <ConnectButton size="sm" />
                   </motion.div>
                 )}
 
@@ -352,10 +343,7 @@ export function UnifiedTopbar({ currentPage, onPageChange, isFullscreen = false,
                   }}
                   transition={{ delay: 0.1 }}
                 >
-                  <Button className="w-full flex items-center justify-center space-x-2">
-                    <Wallet className="w-4 h-4" />
-                    <span>Connect Wallet</span>
-                  </Button>
+                  <ConnectButton size="sm" className="w-full justify-center" />
                 </motion.div>
               )}
 

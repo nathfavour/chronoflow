@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
+import { ConnectButton } from "./ConnectButton";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
 import { 
@@ -266,10 +267,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
               <p className="text-sm text-muted-foreground mb-3">
                 Connect your Web3 wallet to start using ChronoFlow
               </p>
-              <Button size="sm" className="w-full" disabled>
-                <Wallet className="w-4 h-4 mr-2" />
-                Connect Wallet
-              </Button>
+              <ConnectButton size="sm" className="w-full justify-center" />
             </Card>
             
             <Card className="p-4">
