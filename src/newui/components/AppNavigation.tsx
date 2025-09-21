@@ -30,7 +30,7 @@ export function AppNavigation({ currentPage, onPageChange }: AppNavigationProps)
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:w-72">
+      <div className="hidden lg:flex lg:fixed lg:top-16 lg:bottom-0 lg:left-0 lg:z-40 lg:w-72">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-sidebar border-r border-sidebar-border px-6 py-8">
           {/* Logo/Brand */}
           <div className="flex h-16 shrink-0 items-center">
